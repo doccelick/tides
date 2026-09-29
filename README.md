@@ -4,12 +4,19 @@ Imports tide data from Kartverket's public API, stores it in SQL Server and serv
 
 ## Quick start
 
-TODO: Add instructions for quick start
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```shell
+dotnet run --project api/src/Tides.Api
+```
+
+The API starts on `http://localhost:5129`. Check `http://localhost:5129/health`, or browse the API at `http://localhost:5129/scalar/v1`. See [docs/development.md](docs/development.md) for tests and Docker.
 
 ## Documentation
 
 | Topic | File |
 | --- | --- |
+| Development | [docs/development.md](docs/development.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
 | Code guidelines | [docs/guidelines.md](docs/guidelines.md) |
 | Architecture decisions | [docs/adr/](docs/adr/) |
