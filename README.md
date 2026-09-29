@@ -10,7 +10,7 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 dotnet run --project api/src/Tides.Api
 ```
 
-The API starts on `http://localhost:5129`. Check `http://localhost:5129/health`, or browse the API at `http://localhost:5129/scalar/v1`. See [docs/development.md](docs/development.md) for tests and Docker.
+The API starts on `http://localhost:5129`. Check `http://localhost:5129/health`, or browse the API at `http://localhost:5129/scalar/v1`. See [docs/development.md](docs/development.md) for the frontend, tests and Docker.
 
 ## Documentation
 
