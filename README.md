@@ -6,6 +6,14 @@ Imports tide data from Kartverket's public API, stores it in SQL Server and serv
 
 TODO: Add instructions for quick start
 
+## Documentation
+
+| Topic | File |
+| --- | --- |
+| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Code guidelines | [docs/guidelines.md](docs/guidelines.md) |
+| Architecture decisions | [docs/adr/](docs/adr/) |
+
 ## License
 
 Code is licensed under the [MIT License](LICENSE).
