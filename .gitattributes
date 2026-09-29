@@ -16,3 +16,5 @@
 *.ttf binary
 *.zip binary
 *.gz binary
+
+frontend/package-lock.json linguist-generated=true
