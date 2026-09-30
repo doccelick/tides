@@ -1,0 +1,33 @@
+name: tides
+
+services:
+  api:
+    build: ./api
+    ports:
+      - "5129:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    develop:
+      watch:
+        - action: rebuild
+          path: ./api/src
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      API_URL: http://api:8080
+    depends_on:
+      - api
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/package-lock.json
