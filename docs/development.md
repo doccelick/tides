@@ -102,3 +102,18 @@ docker build -f frontend/Dockerfile.dev -t tides-frontend-dev frontend
 The API image listens on port 8080 and runs as a non-root user. It defaults to the Production environment, where the OpenAPI document and Scalar are off. Compose sets `ASPNETCORE_ENVIRONMENT=Development` to turn them on.
 
 `frontend/Dockerfile.dev` runs the Vite dev server and is for development only.
+
+## OpenAPI document
+
+`dotnet build` regenerates `api/src/Tides.Api/openapi.json` from the endpoints. The file is committed, so an endpoint change and its updated `openapi.json` go in the same commit.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request to `main`. Its two jobs must pass before the pull request can merge.
+
+| Job | Checks |
+| --- | --- |
+| `api` | `dotnet format` verification, build, tests, and that `openapi.json` matches the build output |
+| `frontend` | oxlint, oxfmt check, type-check and build, Vitest tests |
+
+To fix a formatting failure, run `dotnet format api/Tides.slnx` from the repository root or `npm run fmt` from `frontend/`, then commit the result.

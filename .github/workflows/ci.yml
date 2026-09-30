@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore api/Tides.slnx
+      - name: Check formatting
+        run: dotnet format api/Tides.slnx --verify-no-changes --no-restore
+      - name: Build
+        run: dotnet build api/Tides.slnx --no-restore
+      - name: Test
+        run: dotnet test api/Tides.slnx --no-build
+      - name: Check openapi.json is up to date
+        run: git diff --exit-code -- api/src/Tides.Api/openapi.json
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run fmt:check
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm run test
