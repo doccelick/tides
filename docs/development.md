@@ -117,3 +117,12 @@ The API image listens on port 8080 and runs as a non-root user. It defaults to t
 | `frontend` | oxlint, oxfmt check, type-check and build, Vitest tests |
 
 To fix a formatting failure, run `dotnet format api/Tides.slnx` from the repository root or `npm run fmt` from `frontend/`, then commit the result.
+
+Two more checks run on every pull request:
+
+- CodeQL scans the C#, TypeScript and workflow code for security issues. It uses GitHub's default setup, turned on in the repository's code security settings, so it has no workflow file.
+- CodeRabbit reviews the changes and comments on the pull request. `.coderabbit.yaml` excludes generated files from its review.
+
+## Dependency updates
+
+Dependabot checks NuGet, npm and GitHub Actions dependencies weekly, as configured in `.github/dependabot.yml`. Minor and patch updates arrive as one pull request per ecosystem. Major updates get their own pull request, except for GitHub Actions, which are grouped together.
