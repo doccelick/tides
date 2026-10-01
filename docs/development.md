@@ -118,10 +118,10 @@ The API image listens on port 8080 and runs as a non-root user. It defaults to t
 
 To fix a formatting failure, run `dotnet format api/Tides.slnx` from the repository root or `npm run fmt` from `frontend/`, then commit the result.
 
-Two more checks run on every pull request:
+Two more checks run on pull requests from branches in this repository:
 
 - CodeQL scans the C#, TypeScript and workflow code for security issues. It uses GitHub's default setup, turned on in the repository's code security settings, so it has no workflow file.
-- CodeRabbit reviews the changes and comments on the pull request. `.coderabbit.yaml` excludes generated files from its review.
+- CodeRabbit reviews the changes once the pull request is ready for review and comments on it. `.coderabbit.yaml` excludes generated files from its review.
 
 ## Dependency updates
 
