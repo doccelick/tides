@@ -44,6 +44,16 @@ public class StationListParserTests
     }
 
     [Fact]
+    public void Parse_NoLocations_ThrowsKartverketException()
+    {
+        var document = XDocument.Parse("<tide><stationinfo/></tide>");
+
+        var exception = Assert.Throws<KartverketException>(() => StationListParser.Parse(document));
+
+        Assert.Equal("No 'location' elements in 'stationinfo'.", exception.Message);
+    }
+
+    [Fact]
     public void Parse_UnderNorwegianCulture_ReadsDecimalPoint()
     {
         var document = LoadSampleFile("stationlist.xml");
