@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/health": process.env.API_URL ?? "http://localhost:5129",
+      "/health": process.env.API_URL ?? "http://localhost:8080",
     },
   },
   resolve: {

@@ -30,9 +30,9 @@ This builds both images and starts the API and the frontend. The API runs in the
 | URL | What it is |
 | --- | --- |
 | `http://localhost:5173` | Frontend |
-| `http://localhost:5129/health` | API health check, returns `Healthy` |
-| `http://localhost:5129/openapi/v1.json` | OpenAPI document |
-| `http://localhost:5129/scalar/v1` | Scalar UI for browsing and calling the API |
+| `http://localhost:8080/health` | API health check, returns `Healthy` |
+| `http://localhost:8080/openapi/v1.json` | OpenAPI document |
+| `http://localhost:8080/scalar/v1` | Scalar UI for browsing and calling the API |
 
 `--watch` keeps the containers in step with your files:
 
@@ -54,7 +54,7 @@ From the repository root:
 dotnet run --project api/src/Tides.Api
 ```
 
-The API listens on `http://localhost:5129` and runs in the Development environment, with the same URLs as under Compose.
+The API listens on `http://localhost:8080` and runs in the Development environment, with the same URLs as under Compose.
 
 ## Run the tests
 
@@ -75,7 +75,7 @@ npm run dev
 
 The frontend runs on `http://localhost:5173`. The start page shows whether the API answers on `/health`.
 
-The Vite dev server proxies `/health` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:5129`. Set the `API_URL` environment variable to point it elsewhere.
+The Vite dev server proxies `/health` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`. Set the `API_URL` environment variable to point it elsewhere.
 
 ## Frontend scripts
 

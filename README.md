@@ -10,7 +10,7 @@ Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 docker compose up --watch
 ```
 
-Open `http://localhost:5173`, or browse the API at `http://localhost:5129/scalar/v1`. See [docs/development.md](docs/development.md) for running without Docker and for tests.
+Open `http://localhost:5173`, or browse the API at `http://localhost:8080/scalar/v1`. See [docs/development.md](docs/development.md) for running without Docker and for tests.
 
 ## Documentation
 
