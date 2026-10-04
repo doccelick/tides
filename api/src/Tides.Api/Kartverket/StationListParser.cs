@@ -19,7 +19,7 @@ public static class StationListParser
             throw new KartverketException("Missing required element 'stationinfo'.");
         }
 
-        return stationInfo.Elements("location")
+        var stations = stationInfo.Elements("location")
             .Select(location => new Station(
                 ReadRequiredAttribute(location, "code"),
                 ReadRequiredAttribute(location, "name"),
@@ -27,6 +27,13 @@ public static class StationListParser
                 double.Parse(ReadRequiredAttribute(location, "longitude"), CultureInfo.InvariantCulture)
             ))
             .ToList();
+
+        if (stations.Count == 0)
+        {
+            throw new KartverketException("No 'location' elements in 'stationinfo'.");
+        }
+
+        return stations;
     }
 
     private static string ReadRequiredAttribute(XElement element, string attributeName) =>

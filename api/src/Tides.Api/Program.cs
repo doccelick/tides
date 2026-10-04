@@ -9,7 +9,9 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddOptions<KartverketOptions>()
     .BindConfiguration(KartverketOptions.SectionName)
-    .Validate(options => options.BaseAddress is not null, "Kartverket:BaseAddress is required.")
+    .Validate(
+        options => options.BaseAddress is { IsAbsoluteUri: true, Scheme: "http" or "https" },
+        "Kartverket:BaseAddress must be an absolute http or https address.")
     .ValidateOnStart();
 
 builder.Services.AddHttpClient<KartverketClient>((services, client) =>
