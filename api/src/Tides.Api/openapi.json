@@ -4,5 +4,86 @@
     "title": "Tides.Api | v1",
     "version": "1.0.0"
   },
-  "paths": { }
+  "paths": {
+    "/v1/stations": {
+      "get": {
+        "tags": [
+          "Stations"
+        ],
+        "summary": "Lists Kartverket's permanent tide stations.",
+        "operationId": "GetStations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationsResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StationResponse": {
+        "required": [
+          "code",
+          "name",
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "StationsResponse": {
+        "required": [
+          "stations"
+        ],
+        "type": "object",
+        "properties": {
+          "stations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StationResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Stations"
+    }
+  ]
 }
