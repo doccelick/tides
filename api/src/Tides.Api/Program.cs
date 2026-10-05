@@ -25,8 +25,13 @@ builder.Services.AddHttpClient<KartverketClient>((services, client) =>
 
 builder.Services.AddHybridCache();
 builder.Services.AddScoped<StationService>();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<KartverketExceptionHandler>();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
