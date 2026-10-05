@@ -30,7 +30,11 @@ builder.Services.AddExceptionHandler<KartverketExceptionHandler>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
-    options.AddDefaultPolicy(policy => policy.WithOrigins(allowedOrigins).WithMethods("GET")));
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(allowedOrigins)
+        .WithMethods("GET")
+        .WithHeaders("If-None-Match")
+        .WithExposedHeaders("ETag")));
 
 var app = builder.Build();
 

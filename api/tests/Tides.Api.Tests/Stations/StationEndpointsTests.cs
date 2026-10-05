@@ -107,6 +107,24 @@ public class StationEndpointsTests(WebApplicationFactory<Program> factory)
         var response = await client.SendAsync(request, cancellationToken);
 
         Assert.Equal("http://localhost:5173", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal("ETag", Assert.Single(response.Headers.GetValues("Access-Control-Expose-Headers")));
+    }
+
+    [Fact]
+    public async Task GetStations_PreflightWithIfNoneMatch_AllowsHeader()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var app = CreateApp(await CreateStationListHandlerAsync(cancellationToken));
+        var client = app.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/v1/stations");
+        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Access-Control-Request-Method", "GET");
+        request.Headers.Add("Access-Control-Request-Headers", "if-none-match");
+        var response = await client.SendAsync(request, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("if-none-match", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Headers")), ignoreCase: true);
     }
 
     [Fact]
