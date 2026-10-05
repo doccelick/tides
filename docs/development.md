@@ -31,6 +31,7 @@ This builds both images and starts the API and the frontend. The API runs in the
 | --- | --- |
 | `http://localhost:5173` | Frontend |
 | `http://localhost:8080/health` | API health check, returns `Healthy` |
+| `http://localhost:8080/v1/stations` | Kartverket's permanent tide stations, cached in memory for 24 hours |
 | `http://localhost:8080/openapi/v1.json` | OpenAPI document |
 | `http://localhost:8080/scalar/v1` | Scalar UI for browsing and calling the API |
 
