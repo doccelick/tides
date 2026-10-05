@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Tides.Api.Kartverket;
+using Tides.Api.Stations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,9 @@ builder.Services.AddOptions<KartverketOptions>()
 
 builder.Services.AddHttpClient<KartverketClient>((services, client) =>
     client.BaseAddress = services.GetRequiredService<IOptions<KartverketOptions>>().Value.BaseAddress);
+
+builder.Services.AddHybridCache();
+builder.Services.AddScoped<StationService>();
 
 var app = builder.Build();
 
