@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using Tides.Api.Kartverket;
@@ -7,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+
+// Without this, OpenAPI describes every number as number or string.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 
 builder.Services.AddOptions<KartverketOptions>()
     .BindConfiguration(KartverketOptions.SectionName)
