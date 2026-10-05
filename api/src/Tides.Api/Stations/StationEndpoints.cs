@@ -11,7 +11,8 @@ public static class StationEndpoints
             .WithName("GetStations")
             .WithTags("Stations")
             .WithSummary("Lists Kartverket's permanent tide stations.")
-            .Produces(StatusCodes.Status304NotModified);
+            .Produces(StatusCodes.Status304NotModified)
+            .ProducesProblem(StatusCodes.Status502BadGateway);
 
         return routes;
     }
