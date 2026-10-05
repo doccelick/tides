@@ -30,5 +30,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHealthChecks("/health");
+app.MapGroup("/v1").MapStationEndpoints();
 
 app.Run();
