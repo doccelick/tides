@@ -54,3 +54,8 @@ jobs:
         run: npm run build
       - name: Test
         run: npm run test
+      - name: Check generated API types are up to date
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/api/generated
+          test -z "$(git ls-files --others --exclude-standard -- src/api/generated)"
