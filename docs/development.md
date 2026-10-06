@@ -4,7 +4,7 @@
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/), for running the stack with Docker Compose
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), for running and testing the API without Docker
-- [Node.js](https://nodejs.org/) 20.19+ or 22.12+, for running and testing the frontend without Docker
+- [Node.js](https://nodejs.org/) 22.22.2+, 24.15+ or 26+, for running and testing the frontend without Docker
 
 ## Repository layout
 
@@ -90,6 +90,7 @@ Run from `frontend/`:
 | `npm run fmt` | Formats with oxfmt |
 | `npm run fmt:check` | Checks formatting without changing files |
 | `npm run build` | Type-checks and builds to `dist/` |
+| `npm run gen:api` | Generates TypeScript types for the API from `openapi.json` into `src/api/generated/` |
 
 ## Build the images
 
@@ -108,6 +109,8 @@ The API image listens on port 8080 and runs as a non-root user. It defaults to t
 
 `dotnet build` regenerates `api/src/Tides.Api/openapi.json` from the endpoints. The file is committed, so an endpoint change and its updated `openapi.json` go in the same commit.
 
+`npm run gen:api` from `frontend/` generates the frontend's TypeScript types from `openapi.json` into `frontend/src/api/generated/`, using @hey-api/openapi-ts. The generated files are committed as well, so an endpoint change carries its regenerated types in the same commit.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request to `main`. Its two jobs must pass before the pull request can merge.
@@ -115,7 +118,7 @@ The API image listens on port 8080 and runs as a non-root user. It defaults to t
 | Job | Checks |
 | --- | --- |
 | `api` | `dotnet format` verification, build, tests, and that `openapi.json` matches the build output |
-| `frontend` | oxlint, oxfmt check, type-check and build, Vitest tests |
+| `frontend` | oxlint, oxfmt check, type-check and build, Vitest tests, and that the generated API types match `openapi.json` |
 
 To fix a formatting failure, run `dotnet format api/Tides.slnx` from the repository root or `npm run fmt` from `frontend/`, then commit the result.
 
@@ -126,4 +129,4 @@ Two more checks run on pull requests from branches in this repository:
 
 ## Dependency updates
 
-Dependabot checks NuGet, npm and GitHub Actions dependencies weekly, as configured in `.github/dependabot.yml`. Minor and patch updates arrive as one pull request per ecosystem. Major updates get their own pull request, except for GitHub Actions, which are grouped together.
+Dependabot checks NuGet, npm and GitHub Actions dependencies weekly, as configured in `.github/dependabot.yml`. Minor and patch updates arrive as one pull request per ecosystem. Major updates get their own pull request, except for GitHub Actions, which are grouped together. Major TypeScript updates are ignored, for the reasons in [ADR 0003](adr/0003-typescript-6-over-typescript-7.md).
