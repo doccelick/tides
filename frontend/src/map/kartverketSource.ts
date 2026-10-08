@@ -9,5 +9,5 @@ const kartverketLayerNames: Record<BaseLayer, string> = {
 
 export function kartverketSource(layer: BaseLayer): RasterSourceSpecification {
   const url = `https://cache.kartverket.no/v1/wmts/1.0.0/${kartverketLayerNames[layer]}/default/webmercator/{z}/{y}/{x}.png`;
-  return { type: "raster", tiles: [url], tileSize: 256, attribution: "© Kartverket" };
+  return { type: "raster", tiles: [url], tileSize: 256, maxzoom: 18, attribution: "© Kartverket" };
 }

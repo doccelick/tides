@@ -13,9 +13,10 @@ describe("kartverketSource", () => {
     ]);
   });
 
-  it("credits Kartverket on a raster source", () => {
+  it("describes a Kartverket raster source", () => {
     const source = kartverketSource("topo");
     expect(source.type).toBe("raster");
     expect(source.attribution).toBe("© Kartverket");
+    expect(source.maxzoom).toBe(18);
   });
 });
