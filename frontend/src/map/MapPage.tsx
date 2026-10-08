@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Map, { Layer, Source, Marker } from "react-map-gl/maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -15,6 +15,7 @@ setWorkerUrl(workerUrl);
 export function MapPage() {
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("topo");
   const [selectedStation, setSelectedStation] = useState<StationResponse | null>(null);
+  const selectedMarkerRef = useRef<HTMLButtonElement | null>(null);
   const isTopo = baseLayer === "topo";
   const isNautical = baseLayer === "nautical";
   const { stations, failed } = useStations();
@@ -42,7 +43,10 @@ export function MapPage() {
               <button
                 type="button"
                 aria-label={station.name}
-                onClick={() => setSelectedStation(station)}
+                onClick={(event) => {
+                  selectedMarkerRef.current = event.currentTarget;
+                  setSelectedStation(station);
+                }}
                 className="flex size-11 cursor-pointer items-center justify-center"
               >
                 <span className="size-3 rounded-full bg-primary ring-2 ring-white" />
@@ -78,7 +82,13 @@ export function MapPage() {
         )}
       </div>
       {selectedStation && (
-        <StationCard station={selectedStation} onClose={() => setSelectedStation(null)} />
+        <StationCard
+          station={selectedStation}
+          onClose={() => {
+            setSelectedStation(null);
+            selectedMarkerRef.current?.focus({ preventScroll: true });
+          }}
+        />
       )}
     </div>
   );

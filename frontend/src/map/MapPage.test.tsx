@@ -76,6 +76,7 @@ describe("MapPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bergen" })).toHaveFocus();
   });
 
   it("shows a notice when the stations fail to load", async () => {
