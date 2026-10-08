@@ -5,12 +5,15 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
+const apiTarget = process.env.API_URL ?? "http://localhost:8080";
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/health": process.env.API_URL ?? "http://localhost:8080",
+      "/health": apiTarget,
+      "/v1": apiTarget,
     },
   },
   resolve: {
