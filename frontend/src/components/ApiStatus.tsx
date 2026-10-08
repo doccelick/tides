@@ -16,12 +16,24 @@ export function ApiStatus() {
     // StrictMode mounts twice in development, aborting cancels the first request.
     const controller = new AbortController();
 
-    fetch("/health", { signal: controller.signal })
-      .then((response) => setStatus(response.ok ? "online" : "offline"))
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+    const fetchApiHealth = async () => {
+      try {
+        const response = await fetch("/health", { signal: controller.signal });
+
+        if (!response.ok) {
+          throw new Error(`API health check failed with ${response.status}`);
+        }
+
+        setStatus("online");
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
         setStatus("offline");
-      });
+      }
+    };
+
+    fetchApiHealth();
 
     return () => controller.abort();
   }, []);
