@@ -1,10 +1,11 @@
 import { useState } from "react";
-import Map, { Layer, Source } from "react-map-gl/maplibre";
+import Map, { Layer, Source, Marker } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { kartverketSource, type BaseLayer } from "./kartverketSource";
 import { Button } from "@/components/ui/button";
 import { setWorkerUrl } from "maplibre-gl";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+import { useStations } from "./useStations";
 
 // Bundlers need an explicit worker URL: https://maplibre.org/maplibre-gl-js/docs/#installation
 setWorkerUrl(workerUrl);
@@ -13,6 +14,8 @@ export function MapPage() {
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("topo");
   const isTopo = baseLayer === "topo";
   const isNautical = baseLayer === "nautical";
+
+  const { stations } = useStations();
 
   return (
     <div className="relative">
@@ -25,6 +28,17 @@ export function MapPage() {
         <Source id="kartverket" {...kartverketSource(baseLayer)}>
           <Layer id="kartverket" type="raster" source="kartverket" />
         </Source>
+        {stations.map((station) => (
+          <Marker key={station.code} latitude={station.latitude} longitude={station.longitude}>
+            <button
+              type="button"
+              aria-label={station.name}
+              className="flex size-11 cursor-pointer items-center justify-center"
+            >
+              <span className="size-3 rounded-full bg-primary ring-2 ring-white" />
+            </button>
+          </Marker>
+        ))}
       </Map>
       <p className="absolute bottom-3 left-3 rounded-md bg-background/80 px-2 py-1 text-xs">
         Not for navigation
