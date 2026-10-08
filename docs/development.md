@@ -74,9 +74,9 @@ npm install
 npm run dev
 ```
 
-The frontend runs on `http://localhost:5173`. The start page shows whether the API answers on `/health`.
+The frontend runs on `http://localhost:5173`. The page shows a map with Kartverket's tide stations as markers, and a badge that shows whether the API answers on `/health`.
 
-The Vite dev server proxies `/health` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`. Set the `API_URL` environment variable to point it elsewhere.
+The Vite dev server proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`. Set the `API_URL` environment variable to point it elsewhere.
 
 ## Frontend scripts
 
