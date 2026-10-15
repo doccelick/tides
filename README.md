@@ -17,6 +17,7 @@ Open `http://localhost:5173`, or browse the API at `http://localhost:8080/scalar
 | Topic | File |
 | --- | --- |
 | Development | [docs/development.md](docs/development.md) |
+| API | [docs/api.md](docs/api.md) |
 | Configuration | [docs/configuration.md](docs/configuration.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
 | Code guidelines | [docs/guidelines.md](docs/guidelines.md) |
