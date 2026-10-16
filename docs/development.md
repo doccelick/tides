@@ -43,7 +43,7 @@ This builds both images and starts the API and the frontend. The API runs in the
 | `frontend/package.json` or `package-lock.json` | The frontend image is rebuilt and its container replaced |
 | A file in `api/src` | The API image is rebuilt and its container replaced |
 
-Inside Compose the frontend reaches the API by its service name, so `API_URL` is set to `http://api:8080`.
+Inside Compose the frontend reaches the API by its service name, through the `API_URL` setting described in [configuration.md](configuration.md#frontend).
 
 Stop with `Ctrl+C`. `docker compose down` removes the containers and the network.
 
@@ -76,7 +76,7 @@ npm run dev
 
 The frontend runs on `http://localhost:5173`. The page shows a map with Kartverket's tide stations as markers, and a badge that shows whether the API answers on `/health`.
 
-The Vite dev server proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`. Set the `API_URL` environment variable to point it elsewhere.
+The Vite dev server proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`, and `API_URL` points it elsewhere, as described in [configuration.md](configuration.md#frontend).
 
 ## Frontend scripts
 
