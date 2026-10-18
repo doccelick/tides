@@ -1,7 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace Tides.Api.Kartverket;
 
+[JsonConverter(typeof(JsonStringEnumConverter<TideType>))]
 public enum TideType
 {
-    High = 0,
-    Low = 1
+    High,
+    Low
 }

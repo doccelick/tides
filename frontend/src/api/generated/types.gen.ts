@@ -23,6 +23,22 @@ export type StationsResponse = {
   stations: Array<StationResponse>;
 };
 
+export type TideResponse = {
+  type: TideType;
+  time: string;
+  levelCm: number;
+};
+
+export type TidesResponse = {
+  stationCode: string;
+  timeZone: string;
+  unit: string;
+  reference: string;
+  tides: Array<TideResponse>;
+};
+
+export type TideType = "High" | "Low";
+
 export type GetStationsData = {
   body?: never;
   path?: never;
@@ -47,3 +63,34 @@ export type GetStationsResponses = {
 };
 
 export type GetStationsResponse = GetStationsResponses[keyof GetStationsResponses];
+
+export type GetTidesData = {
+  body?: never;
+  path: {
+    code: string;
+  };
+  query?: never;
+  url: "/v1/stations/{code}/tides";
+};
+
+export type GetTidesErrors = {
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type GetTidesError = GetTidesErrors[keyof GetTidesErrors];
+
+export type GetTidesResponses = {
+  /**
+   * OK
+   */
+  200: TidesResponse;
+};
+
+export type GetTidesResponse = GetTidesResponses[keyof GetTidesResponses];

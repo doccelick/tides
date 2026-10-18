@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Tides.Api.Kartverket;
 using Tides.Api.Stations;
+using Tides.Api.Tides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddKartverket();
 builder.Services.AddHybridCache();
 builder.Services.AddScoped<StationService>();
+builder.Services.AddScoped<TideService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<KartverketExceptionHandler>();
 
@@ -39,6 +42,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHealthChecks("/health");
-app.MapGroup("/v1").MapStationEndpoints();
+var v1 = app.MapGroup("/v1");
+v1.MapStationEndpoints();
+v1.MapTideEndpoints();
 
 app.Run();
