@@ -1,0 +1,12 @@
+<tide>
+<locationdata>
+<location name="Bodø" code="BOO" latitude="67.292330" longitude="14.399770" delay="0" factor="1.00" obsname="Bodø" obscode="BOO" descr="Tides from Bodø"/>
+<reflevelcode>MSL</reflevelcode>
+<data type="prediction" unit="cm" qualityFlag="1" qualityClass="Quality High" qualityDescription="High quality data: It has been verified against measurements that the data represents physical conditions.">
+<waterlevel value="54.1" time="2026-10-18T03:48:00+00:00" flag="high"/>
+<waterlevel value="-26.2" time="2026-10-18T09:45:00+00:00" flag="low"/>
+<waterlevel value="66.9" time="2026-10-18T16:08:00+00:00" flag="high"/>
+<waterlevel value="-30.6" time="2026-10-18T23:09:00+00:00" flag="low"/>
+</data>
+</locationdata>
+</tide>
