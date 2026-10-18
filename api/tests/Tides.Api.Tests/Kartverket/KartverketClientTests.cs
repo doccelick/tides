@@ -92,4 +92,18 @@ public class KartverketClientTests
             CultureInfo.CurrentCulture = originalCulture;
         }
     }
+
+    [Fact]
+    public async Task GetTidesAsync_RangeOverThousandDays_ThrowsWithoutRequest()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, string.Empty);
+        var client = new KartverketClient(new HttpClient(handler) { BaseAddress = new Uri("https://kartverket.test/") });
+        var from = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => client.GetTidesAsync(67.29233, 14.39977, from, from.AddDays(1001), cancellationToken));
+
+        Assert.Null(handler.Request);
+    }
 }
