@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Xml.Linq;
+using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace Tides.Api.Kartverket;
 
@@ -16,4 +18,26 @@ public sealed class KartverketClient(HttpClient httpClient)
         var document = await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
         return StationListParser.Parse(document);
     }
+
+    public async Task<IReadOnlyList<Tide>> GetTidesAsync(
+        double latitude,
+        double longitude,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default)
+    {
+        var requestUri = new Uri(string.Create(CultureInfo.InvariantCulture,
+            $"tideapi.php?tide_request=locationdata&lat={latitude}&lon={longitude}&fromtime={FormatAsUtc(from)}&totime={FormatAsUtc(to)}&datatype=tab&refcode=msl&lang=en&tzone=0"),
+            UriKind.Relative);
+
+        using var response = await httpClient.GetAsync(requestUri, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+        var document = await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
+        return TideParser.Parse(document);
+    }
+
+    private static string FormatAsUtc(DateTimeOffset time) => time.UtcDateTime.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
 }
