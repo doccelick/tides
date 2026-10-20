@@ -38,8 +38,8 @@ describe("formatTideDay", () => {
 });
 
 describe("formatTideLevel", () => {
-  it("adds a plus sign to a positive level", () => {
-    expect(formatTideLevel(54.1)).toBe("+54 cm");
+  it("shows a positive level without a sign", () => {
+    expect(formatTideLevel(54.1)).toBe("54 cm");
   });
 
   it("adds a minus sign to a negative level", () => {
