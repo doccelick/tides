@@ -40,11 +40,12 @@ describe("MapPage", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string) =>
-        Promise.resolve(
-          url.endsWith("/tides") ? Response.json(tides) : Response.json({ stations }),
-        ),
-      ),
+      vi.fn((url: string) => {
+        if (url.endsWith("/tides")) return Promise.resolve(Response.json(tides));
+        if (url.endsWith("/water-level"))
+          return Promise.resolve(new Response(null, { status: 404 }));
+        return Promise.resolve(Response.json({ stations }));
+      }),
     );
   });
 
