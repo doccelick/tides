@@ -42,7 +42,7 @@ public sealed class TideService(
                 station.Code,
                 "UTC",
                 "cm",
-                "MSL",
+                "CD",
                 [.. tides.Select(
                     t => new TideResponse(
                         t.Type,

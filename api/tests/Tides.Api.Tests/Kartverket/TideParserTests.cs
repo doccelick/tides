@@ -22,7 +22,7 @@ public class TideParserTests
 
         var time = new DateTimeOffset(2026, 10, 18, 9, 45, 0, TimeSpan.Zero);
         Assert.Equal(4, tides.Count);
-        Assert.Equal(new Tide(TideType.Low, time, -26.2), tides[1]);
+        Assert.Equal(new Tide(TideType.Low, time, 142.6), tides[1]);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class TideParserTests
         {
             CultureInfo.CurrentCulture = new CultureInfo("nb-NO");
             var tides = TideParser.Parse(document);
-            Assert.Equal(54.1, tides[0].LevelCm);
+            Assert.Equal(222.9, tides[0].LevelCm);
         }
         finally
         {

@@ -52,18 +52,18 @@ flowchart TB
 
     spa["<b>React app</b><br/>TypeScript, MapLibre"]:::tides
     vite["<b>Vite dev server</b><br/>proxies /health and /v1"]:::tides
-    api["<b>API</b><br/>.NET 10, stations and tides cached in memory"]:::tides
+    api["<b>API</b><br/>.NET 10, stations, tides and water levels cached in memory"]:::tides
 
     tiles["<b>Kartverket tiles</b><br/>topo and nautical"]:::ext
     baseMap["<b>OpenFreeMap</b><br/>base map"]:::ext
-    tideApi["<b>Kartverket Tide API</b><br/>stations and tides, XML"]:::ext
+    tideApi["<b>Kartverket Tide API</b><br/>stations, tides and water levels, XML"]:::ext
 
-    visitor -- "views<br/>tide stations and tides" --> spa
-    spa -- "loads the app,<br/>GET /v1/stations,<br/>GET /v1/stations/{code}/tides" --> vite
+    visitor -- "views<br/>tide stations, tides<br/>and water levels" --> spa
+    spa -- "loads the app,<br/>GET /v1/stations,<br/>GET /v1/stations/{code}/tides,<br/>GET /v1/stations/{code}/water-level" --> vite
     vite -- "proxies" --> api
     spa -- "loads tiles" --> tiles
     spa -- "loads<br/>base map" --> baseMap
-    api -- "fetches<br/>stations and tides" --> tideApi
+    api -- "fetches<br/>stations, tides<br/>and water levels" --> tideApi
 
     classDef tides stroke-width:2px
     classDef ext stroke-dasharray:4 3
@@ -71,9 +71,9 @@ flowchart TB
 
 | Container | Role |
 | --- | --- |
-| React app | Shows the map and Kartverket's tide stations as markers. Tapping a station opens a card with its high and low tides for today and tomorrow, in the browser's time zone. Loads map tiles directly and fetches stations and tides from the API. |
+| React app | Shows the map and Kartverket's tide stations as markers. Tapping a station opens a card with its latest measured water level and its high and low tides for today and tomorrow, in the browser's time zone. Loads map tiles directly and fetches stations, tides and water levels from the API. |
 | Vite dev server | Serves the React app in development and proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. |
-| API | Serves the station list and each station's high and low tides as JSON. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches a station's tides on the first request for that station each UTC day and keeps them in memory for the rest of that day. |
+| API | Serves the station list, each station's high and low tides and its latest measured water level as JSON. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches a station's tides on the first request for that station each UTC day and keeps them in memory for the rest of that day. Keeps a station's water level in memory for 5 minutes. |
 
 ## Containers planned
 

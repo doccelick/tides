@@ -62,7 +62,7 @@ public class KartverketClientTests
             "https://kartverket.test/tideapi.php?tide_request=locationdata" +
             "&lat=67.29233&lon=14.39977" +
             "&fromtime=2026-10-18T00:00&totime=2026-10-19T00:00" +
-            "&datatype=tab&refcode=msl&lang=en&tzone=0");
+            "&datatype=tab&refcode=cd&lang=en&tzone=0");
 
         Assert.Equal(expectedUri, handler.Request!.RequestUri);
     }
@@ -105,5 +105,30 @@ public class KartverketClientTests
             () => client.GetTidesAsync(67.29233, 14.39977, from, from.AddDays(1001), cancellationToken));
 
         Assert.Null(handler.Request);
+    }
+
+    [Fact]
+    public async Task GetObservationsAsync_ValidResponse_RequestsObservationsInUtc()
+    {
+        var observationsXmlPath = Path.Combine(AppContext.BaseDirectory, "Kartverket", "TestData", "observations.xml");
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var observationsXmlContent = await File.ReadAllTextAsync(observationsXmlPath, cancellationToken);
+        var handler = new StubHandler(HttpStatusCode.OK, observationsXmlContent);
+        var client = new KartverketClient(new HttpClient(handler) { BaseAddress = new Uri("https://kartverket.test/") });
+
+        var to = new DateTimeOffset(2026, 10, 20, 22, 39, 0, TimeSpan.FromHours(2));
+        var from = to.AddHours(-2);
+
+        var observations = await client.GetObservationsAsync(67.29233, 14.39977, from, to, cancellationToken);
+
+        Assert.Equal(12, observations.Count);
+
+        var expectedUri = new Uri(
+            "https://kartverket.test/tideapi.php?tide_request=locationdata" +
+            "&lat=67.29233&lon=14.39977" +
+            "&fromtime=2026-10-20T18:39&totime=2026-10-20T20:39" +
+            "&datatype=obs&interval=10&refcode=cd&lang=en&tzone=0");
+
+        Assert.Equal(expectedUri, handler.Request!.RequestUri);
     }
 }

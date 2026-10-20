@@ -1,5 +1,6 @@
 import type { StationResponse } from "@/api/generated";
 import { Button } from "@/components/ui/button";
+import { CurrentLevel } from "@/tides/CurrentLevel";
 import { TidePanel } from "@/tides/TidePanel";
 import { XIcon } from "lucide-react";
 
@@ -23,6 +24,7 @@ export function StationCard({ station, onClose }: StationCardProps) {
           <XIcon />
         </Button>
       </div>
+      <CurrentLevel code={station.code} />
       <TidePanel code={station.code} />
     </section>
   );

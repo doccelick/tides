@@ -46,7 +46,7 @@ export function TidePanel({ code }: TidePanelProps) {
         ))}
       </ul>
       <div className="text-xs text-muted-foreground">
-        <p>Levels relative to mean sea level.</p>
+        <p>Levels relative to chart datum.</p>
         <p>
           Tide data from{" "}
           <a

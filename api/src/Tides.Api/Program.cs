@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using Tides.Api.Kartverket;
 using Tides.Api.Stations;
 using Tides.Api.Tides;
+using Tides.Api.WaterLevels;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,7 @@ builder.Services.AddKartverket();
 builder.Services.AddHybridCache();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<TideService>();
+builder.Services.AddScoped<WaterLevelService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<KartverketExceptionHandler>();
@@ -45,5 +47,6 @@ app.MapHealthChecks("/health");
 var v1 = app.MapGroup("/v1");
 v1.MapStationEndpoints();
 v1.MapTideEndpoints();
+v1.MapWaterLevelEndpoints();
 
 app.Run();

@@ -11,7 +11,7 @@ const levelFormat = new Intl.NumberFormat("en-GB", {
   style: "unit",
   unit: "centimeter",
   unitDisplay: "short",
-  signDisplay: "exceptZero",
+  signDisplay: "negative",
   maximumFractionDigits: 0,
 });
 
