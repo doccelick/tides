@@ -92,6 +92,60 @@
           }
         }
       }
+    },
+    "/v1/stations/{code}/water-level": {
+      "get": {
+        "tags": [
+          "Water levels"
+        ],
+        "summary": "Returns the latest observed water level from the last 30 minutes for a specified station.",
+        "operationId": "GetWaterLevel",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterLevelResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -227,6 +281,39 @@
           "High",
           "Low"
         ]
+      },
+      "WaterLevelResponse": {
+        "required": [
+          "stationCode",
+          "timeZone",
+          "unit",
+          "reference",
+          "time",
+          "levelCm"
+        ],
+        "type": "object",
+        "properties": {
+          "stationCode": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "levelCm": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       }
     }
   },
@@ -236,6 +323,9 @@
     },
     {
       "name": "Tides"
+    },
+    {
+      "name": "Water levels"
     }
   ]
 }

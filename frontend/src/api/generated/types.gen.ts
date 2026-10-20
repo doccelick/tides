@@ -39,6 +39,15 @@ export type TidesResponse = {
 
 export type TideType = "High" | "Low";
 
+export type WaterLevelResponse = {
+  stationCode: string;
+  timeZone: string;
+  unit: string;
+  reference: string;
+  time: string;
+  levelCm: number;
+};
+
 export type GetStationsData = {
   body?: never;
   path?: never;
@@ -94,3 +103,34 @@ export type GetTidesResponses = {
 };
 
 export type GetTidesResponse = GetTidesResponses[keyof GetTidesResponses];
+
+export type GetWaterLevelData = {
+  body?: never;
+  path: {
+    code: string;
+  };
+  query?: never;
+  url: "/v1/stations/{code}/water-level";
+};
+
+export type GetWaterLevelErrors = {
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type GetWaterLevelError = GetWaterLevelErrors[keyof GetWaterLevelErrors];
+
+export type GetWaterLevelResponses = {
+  /**
+   * OK
+   */
+  200: WaterLevelResponse;
+};
+
+export type GetWaterLevelResponse = GetWaterLevelResponses[keyof GetWaterLevelResponses];
