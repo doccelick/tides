@@ -32,7 +32,7 @@ const tides: TidesResponse = {
   stationCode: "BGO",
   timeZone: "UTC",
   unit: "cm",
-  reference: "MSL",
+  reference: "CD",
   tides: [],
 };
 

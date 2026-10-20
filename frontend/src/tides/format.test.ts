@@ -38,11 +38,11 @@ describe("formatTideDay", () => {
 });
 
 describe("formatTideLevel", () => {
-  it("adds a plus sign above mean sea level", () => {
+  it("adds a plus sign to a positive level", () => {
     expect(formatTideLevel(54.1)).toBe("+54 cm");
   });
 
-  it("adds a minus sign below mean sea level", () => {
+  it("adds a minus sign to a negative level", () => {
     expect(formatTideLevel(-26.2)).toBe("-26 cm");
   });
 

@@ -7,10 +7,10 @@ const tides: TidesResponse = {
   stationCode: "BGO",
   timeZone: "UTC",
   unit: "cm",
-  reference: "MSL",
+  reference: "CD",
   tides: [
-    { type: "High", time: "2026-10-19T03:48:00+00:00", levelCm: 54 },
-    { type: "Low", time: "2026-10-19T09:45:00+00:00", levelCm: -26 },
+    { type: "High", time: "2026-10-19T03:48:00+00:00", levelCm: 223 },
+    { type: "Low", time: "2026-10-19T09:45:00+00:00", levelCm: 143 },
   ],
 };
 
