@@ -66,7 +66,7 @@ The API fetches a station's tides from Kartverket on the first request each UTC 
 
 `time` is when the level was measured, in UTC. The level is in centimetres above chart datum, like the tides. It differs from the predicted tide when weather pushes the water up or down.
 
-Only a level measured in the last 30 minutes is returned. The API keeps a station's level in memory for 5 minutes before fetching it from Kartverket again.
+The API returns a level only if it was at most 30 minutes old when the API fetched it from Kartverket. It keeps a station's level in memory for 5 minutes, and browsers may keep the response for another 5, so a level can be up to 40 minutes old when shown.
 
 ## Caching
 
