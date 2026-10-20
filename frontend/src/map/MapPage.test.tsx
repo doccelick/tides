@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MapPage } from "./MapPage";
-import type { StationResponse } from "@/api/generated";
+import type { StationResponse, TidesResponse } from "@/api/generated";
 
 vi.mock("react-map-gl/maplibre", () => ({
   default: ({
@@ -28,9 +28,24 @@ const stations: StationResponse[] = [
   { code: "OSL", name: "Oslo", latitude: 59.9, longitude: 10.7 },
 ];
 
+const tides: TidesResponse = {
+  stationCode: "BGO",
+  timeZone: "UTC",
+  unit: "cm",
+  reference: "MSL",
+  tides: [],
+};
+
 describe("MapPage", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ stations })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        Promise.resolve(
+          url.endsWith("/tides") ? Response.json(tides) : Response.json({ stations }),
+        ),
+      ),
+    );
   });
 
   it("starts on the topo map", () => {
