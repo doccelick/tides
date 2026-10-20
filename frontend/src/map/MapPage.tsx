@@ -83,6 +83,7 @@ export function MapPage() {
       </div>
       {selectedStation && (
         <StationCard
+          key={selectedStation.code}
           station={selectedStation}
           onClose={() => {
             setSelectedStation(null);

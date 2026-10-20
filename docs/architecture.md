@@ -52,18 +52,18 @@ flowchart TB
 
     spa["<b>React app</b><br/>TypeScript, MapLibre"]:::tides
     vite["<b>Vite dev server</b><br/>proxies /health and /v1"]:::tides
-    api["<b>API</b><br/>.NET 10, stations cached in memory"]:::tides
+    api["<b>API</b><br/>.NET 10, stations and tides cached in memory"]:::tides
 
     tiles["<b>Kartverket tiles</b><br/>topo and nautical"]:::ext
     baseMap["<b>OpenFreeMap</b><br/>base map"]:::ext
-    tideApi["<b>Kartverket Tide API</b><br/>station list, XML"]:::ext
+    tideApi["<b>Kartverket Tide API</b><br/>stations and tides, XML"]:::ext
 
-    visitor -- "views<br/>tide stations" --> spa
-    spa -- "loads the app,<br/>GET /v1/stations" --> vite
+    visitor -- "views<br/>tide stations and tides" --> spa
+    spa -- "loads the app,<br/>GET /v1/stations,<br/>GET /v1/stations/{code}/tides" --> vite
     vite -- "proxies" --> api
     spa -- "loads tiles" --> tiles
     spa -- "loads<br/>base map" --> baseMap
-    api -- "fetches<br/>station list" --> tideApi
+    api -- "fetches<br/>stations and tides" --> tideApi
 
     classDef tides stroke-width:2px
     classDef ext stroke-dasharray:4 3
@@ -71,9 +71,9 @@ flowchart TB
 
 | Container | Role |
 | --- | --- |
-| React app | Shows the map and Kartverket's tide stations as markers. Loads map tiles directly and fetches stations from the API. |
+| React app | Shows the map and Kartverket's tide stations as markers. Tapping a station opens a card with its high and low tides for today and tomorrow, in the browser's time zone. Loads map tiles directly and fetches stations and tides from the API. |
 | Vite dev server | Serves the React app in development and proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. |
-| API | Serves the station list as JSON. Fetches it from Kartverket on the first request and keeps it in memory for 24 hours. |
+| API | Serves the station list and each station's high and low tides as JSON. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches a station's tides on the first request for that station each UTC day and keeps them in memory for the rest of that day. |
 
 ## Containers planned
 
