@@ -62,7 +62,7 @@ public class KartverketClientTests
             "https://kartverket.test/tideapi.php?tide_request=locationdata" +
             "&lat=67.29233&lon=14.39977" +
             "&fromtime=2026-10-18T00:00&totime=2026-10-19T00:00" +
-            "&datatype=tab&refcode=msl&lang=en&tzone=0");
+            "&datatype=tab&refcode=cd&lang=en&tzone=0");
 
         Assert.Equal(expectedUri, handler.Request!.RequestUri);
     }

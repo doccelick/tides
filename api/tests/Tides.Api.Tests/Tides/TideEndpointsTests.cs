@@ -62,7 +62,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
         Assert.NotNull(response.Headers.ETag);
         var body = await response.Content.ReadFromJsonAsync<TidesResponse>(cancellationToken);
         Assert.Equal(4, body!.Tides.Count);
-        Assert.Equal(new TideResponse(TideType.Low, new DateTimeOffset(2026, 10, 18, 9, 45, 0, TimeSpan.Zero), -26.2), body.Tides[1]);
+        Assert.Equal(new TideResponse(TideType.Low, new DateTimeOffset(2026, 10, 18, 9, 45, 0, TimeSpan.Zero), 142.6), body.Tides[1]);
     }
 
     [Fact]

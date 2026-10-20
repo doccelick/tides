@@ -31,7 +31,7 @@ public sealed class KartverketClient(HttpClient httpClient)
         ArgumentOutOfRangeException.ThrowIfGreaterThan(to - from, MaxTideRange);
 
         var requestUri = new Uri(string.Create(CultureInfo.InvariantCulture,
-            $"tideapi.php?tide_request=locationdata&lat={latitude}&lon={longitude}&fromtime={FormatAsUtc(from)}&totime={FormatAsUtc(to)}&datatype=tab&refcode=msl&lang=en&tzone=0"),
+            $"tideapi.php?tide_request=locationdata&lat={latitude}&lon={longitude}&fromtime={FormatAsUtc(from)}&totime={FormatAsUtc(to)}&datatype=tab&refcode=cd&lang=en&tzone=0"),
             UriKind.Relative);
 
         using var response = await httpClient.GetAsync(requestUri, cancellationToken);

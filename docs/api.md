@@ -36,15 +36,15 @@ The API fetches the station list from Kartverket on the first request and keeps 
   "stationCode": "BOO",
   "timeZone": "UTC",
   "unit": "cm",
-  "reference": "MSL",
+  "reference": "CD",
   "tides": [
-    { "type": "High", "time": "2026-10-18T03:48:00+00:00", "levelCm": 54.1 },
-    { "type": "Low", "time": "2026-10-18T09:45:00+00:00", "levelCm": -26.2 }
+    { "type": "High", "time": "2026-10-18T03:48:00+00:00", "levelCm": 222.9 },
+    { "type": "Low", "time": "2026-10-18T09:45:00+00:00", "levelCm": 142.6 }
   ]
 }
 ```
 
-Times are in UTC. Levels are in centimetres above or below mean sea level (MSL), so a negative level is below it.
+Times are in UTC. Levels are in centimetres above chart datum (CD), the reference level used on Norwegian nautical charts and close to the lowest astronomical tide. A level is rarely negative, and only when the water falls below chart datum.
 
 The API fetches a station's tides from Kartverket on the first request each UTC day, and answers the rest of that day's requests for the station from memory.
 
