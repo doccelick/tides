@@ -1,6 +1,6 @@
 # Configuration
 
-All settings below can be committed except `MSSQL_SA_PASSWORD`, which should be written in an untracked `.env` file in the repo root. `.env.example` contains the relevant variables.
+All settings below can be committed except `MSSQL_SA_PASSWORD` and connection strings that contain it. The password should be written in an untracked `.env` file in the repo root. `.env.example` contains the relevant variables.
 
 ## API
 
@@ -11,7 +11,7 @@ The API reads its settings from `api/src/Tides.Api/appsettings.json`. In the Dev
 | `ASPNETCORE_ENVIRONMENT` | `Production` | The environment the API runs in. `Development` loads `appsettings.Development.json` and turns on the OpenAPI document and Scalar. `launchSettings.json` and `compose.yml` set it to `Development`. Not read from appsettings files. |
 | `Kartverket:BaseAddress` | `https://vannstand.kartverket.no/` | Address of Kartverket's Tide API. The API does not start unless it is an absolute http or https address. |
 | `Cors:AllowedOrigins` | Empty, and `http://localhost:5173` in Development | Browser origins allowed to call the API's GET endpoints from another origin. Each origin is a scheme, host and port with no trailing slash. When the list is empty, browsers block all cross-origin requests. |
-| `ConnectionStrings:Tides` | Not set | SQL Server connection string for `TidesDbContext`. `compose.yml` sets it to the `mssql` service with the password from `MSSQL_SA_PASSWORD`. Outside Compose, `dotnet ef` commands take it through `--connection`, with `localhost,1433` as the server. |
+| `ConnectionStrings:Tides` | Not set | SQL Server connection string for `TidesDbContext`. `compose.yml` sets it to the `mssql` service with the password from `MSSQL_SA_PASSWORD`. Outside Compose, `dotnet ef database update` takes it through `--connection`, with `127.0.0.1,1433` as the server. `localhost` can resolve to IPv6 first and time out, since Compose publishes the port on IPv4 only. |
 
 ## Frontend
 
