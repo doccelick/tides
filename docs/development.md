@@ -6,6 +6,8 @@
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), for running and testing the API without Docker
 - [Node.js](https://nodejs.org/) 22.22.2+, 24.15+ or 26+, for running and testing the frontend without Docker
 
+The SQL Server image runs only on x86-64. Microsoft doesn't support it under emulation, such as Rosetta 2 on Apple silicon or Prism on Windows on Arm. On those machines, run only the unit tests, as described under [Run the tests](#run-the-tests).
+
 ## Repository layout
 
 | Path | Contents |
