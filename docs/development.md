@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/), for running the stack with Docker Compose
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), for running the stack with Docker Compose and for the API integration tests
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), for running and testing the API without Docker
 - [Node.js](https://nodejs.org/) 22.22.2+, 24.15+ or 26+, for running and testing the frontend without Docker
 
@@ -13,7 +13,8 @@
 | `compose.yml` | Docker Compose file for running the API and the frontend together |
 | `api/Tides.slnx` | Solution for the API and its tests |
 | `api/src/Tides.Api` | .NET 10 minimal API |
-| `api/tests/Tides.Api.Tests` | xUnit v3 tests, run on Microsoft.Testing.Platform |
+| `api/tests/Tides.Api.Tests` | xUnit v3 unit tests, run on Microsoft.Testing.Platform |
+| `api/tests/Tides.Api.IntegrationTests` | xUnit v3 integration tests against SQL Server in a Testcontainers container |
 | `frontend/` | React frontend: Vite, TypeScript, Tailwind CSS, shadcn/ui |
 | `docs/` | Documentation |
 
@@ -64,6 +65,12 @@ dotnet test api/Tides.slnx
 ```
 
 `global.json` switches `dotnet test` to Microsoft.Testing.Platform.
+
+The integration tests start SQL Server in a Docker container, so Docker must be running. The first run pulls the SQL Server image, which takes a few minutes. To run only the unit tests, without Docker:
+
+```shell
+dotnet test api/tests/Tides.Api.Tests
+```
 
 ## Run the frontend
 
