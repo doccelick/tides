@@ -21,3 +21,6 @@ insert_final_newline = false
 [*.{ts,tsx,js,jsx,css,html}]
 indent_style = space
 indent_size = 2
+
+[**/Migrations/*.cs]
+generated_code = true
