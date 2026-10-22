@@ -3,6 +3,7 @@
     <Project Path="src/Tides.Api/Tides.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Tides.Api.IntegrationTests/Tides.Api.IntegrationTests.csproj" />
     <Project Path="tests/Tides.Api.Tests/Tides.Api.Tests.csproj" />
   </Folder>
 </Solution>
