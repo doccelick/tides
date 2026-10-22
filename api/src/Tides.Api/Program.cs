@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
+using Tides.Api.Data;
 using Tides.Api.Kartverket;
 using Tides.Api.Stations;
 using Tides.Api.Tides;
@@ -16,6 +18,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddKartverket();
 builder.Services.AddHybridCache();
+builder.Services.AddDbContext<TidesDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Tides")));
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<TideService>();
 builder.Services.AddScoped<WaterLevelService>();
