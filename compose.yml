@@ -7,10 +7,25 @@ services:
       - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Tides: "Server=mssql,1433;Database=Tides;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+    depends_on:
+      - mssql
     develop:
       watch:
         - action: rebuild
           path: ./api/src
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: "Developer"
+    ports:
+      - "127.0.0.1:1433:1433"
+
+    volumes:
+      - mssql-data:/var/opt/mssql
 
   frontend:
     build:
@@ -31,3 +46,6 @@ services:
           path: ./frontend/package.json
         - action: rebuild
           path: ./frontend/package-lock.json
+
+volumes:
+  mssql-data:
