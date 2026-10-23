@@ -131,4 +131,29 @@ public class KartverketClientTests
 
         Assert.Equal(expectedUri, handler.Request!.RequestUri);
     }
+
+    [Fact]
+    public async Task GetPredictionsAsync_ValidResponse_RequestsPredictionsInUtc()
+    {
+        var predictionsXmlPath = Path.Combine(AppContext.BaseDirectory, "Kartverket", "TestData", "predictions.xml");
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var predictionsXmlContent = await File.ReadAllTextAsync(predictionsXmlPath, cancellationToken);
+        var handler = new StubHandler(HttpStatusCode.OK, predictionsXmlContent);
+        var client = new KartverketClient(new HttpClient(handler) { BaseAddress = new Uri("https://kartverket.test/") });
+
+        var to = new DateTimeOffset(2026, 10, 23, 01, 00, 0, TimeSpan.FromHours(1));
+        var from = to.AddHours(-1);
+
+        var predictions = await client.GetPredictionsAsync(67.29233, 14.39977, from, to, cancellationToken);
+
+        Assert.Equal(7, predictions.Count);
+
+        var expectedUri = new Uri(
+            "https://kartverket.test/tideapi.php?tide_request=locationdata" +
+            "&lat=67.29233&lon=14.39977" +
+            "&fromtime=2026-10-22T23:00&totime=2026-10-23T00:00" +
+            "&datatype=pre&interval=10&refcode=cd&lang=en&tzone=0");
+
+        Assert.Equal(expectedUri, handler.Request!.RequestUri);
+    }
 }
