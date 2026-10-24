@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Tides.Api.IntegrationTests.Imports;
+namespace Tides.Api.IntegrationTests;
 
 public sealed class FakeKartverketHandler(string tides, string predictions) : HttpMessageHandler
 {

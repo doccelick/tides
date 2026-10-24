@@ -26,6 +26,7 @@ builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<TideService>();
 builder.Services.AddScoped<WaterLevelService>();
 builder.Services.AddScoped<ImportService>();
+builder.Services.AddScoped<LocationService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
