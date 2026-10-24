@@ -58,4 +58,13 @@ public sealed class LocationService(
 
         return new LocationsResponse(locations);
     }
+
+    public async Task<bool> DeleteLocationAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var deletedRows = await database.Locations
+            .Where(l => l.Id == id)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deletedRows > 0;
+    }
 }

@@ -226,6 +226,35 @@
           }
         }
       }
+    },
+    "/v1/locations/{id}": {
+      "delete": {
+        "tags": [
+          "Locations"
+        ],
+        "summary": "Deletes a location and its imported tide data.",
+        "operationId": "DeleteLocation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {

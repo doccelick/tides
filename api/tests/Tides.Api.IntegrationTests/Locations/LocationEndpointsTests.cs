@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tides.Api.Data;
+using Tides.Api.Imports;
 using Tides.Api.Locations;
 
 namespace Tides.Api.IntegrationTests.Locations;
@@ -222,5 +223,94 @@ public class LocationEndpointsTests(SqlServerFixture database)
         Assert.NotNull(storedLocation);
         Assert.Equal(location.Latitude, storedLocation.Latitude);
         Assert.Equal(location.Longitude, storedLocation.Longitude);
+    }
+
+    [Fact]
+    public async Task DeleteLocation_ExistingLocation_ReturnsNoContent()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(Tides, Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/v1/locations",
+            new CreateLocationRequest("Bodø", 67.29, 14.40),
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var location = await response.Content.ReadFromJsonAsync<LocationResponse>(cancellationToken);
+        Assert.NotNull(location);
+
+        var deleteResponse = await client.DeleteAsync(
+            $"/v1/locations/{location.Id}",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+            var isSaved = await context.Locations.AnyAsync(l => l.Id == location.Id, cancellationToken);
+
+            Assert.False(isSaved);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteLocation_UnknownId_ReturnsNotFound()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(Tides, Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var client = factory.CreateClient();
+
+        var deleteResponse = await client.DeleteAsync(
+            $"/v1/locations/{int.MaxValue}",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteLocation_WithImport_DeletesEntries()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(Tides, Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var client = factory.CreateClient();
+
+        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        Import? import;
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+            context.Locations.Add(location);
+            await context.SaveChangesAsync(cancellationToken);
+
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            import = await service.ImportAsync(location, from, to, cancellationToken);
+            Assert.NotNull(import);
+        }
+
+        var deleteResponse = await client.DeleteAsync(
+            $"/v1/locations/{location.Id}",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+            var hasEntries = await context.TideEntries.AnyAsync(e => e.ImportId == import.Id, cancellationToken);
+
+            Assert.False(hasEntries);
+        }
     }
 }

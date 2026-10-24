@@ -19,6 +19,11 @@ public static class LocationEndpoints
             .WithTags("Locations")
             .WithSummary("Gets all stored locations.");
 
+        routes.MapDelete("/locations/{id:int:min(1)}", DeleteLocationAsync)
+            .WithName("DeleteLocation")
+            .WithTags("Locations")
+            .WithSummary("Deletes a location and its imported tide data.");
+
         return routes;
     }
 
@@ -52,5 +57,20 @@ public static class LocationEndpoints
     {
         var response = await service.GetLocationsAsync(cancellationToken);
         return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<NoContent, NotFound>> DeleteLocationAsync(
+        int id,
+        LocationService service,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await service.DeleteLocationAsync(id, cancellationToken);
+
+        if (!deleted)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.NoContent();
     }
 }
