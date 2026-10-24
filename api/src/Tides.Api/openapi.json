@@ -206,6 +206,25 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Locations"
+        ],
+        "summary": "Gets all stored locations.",
+        "operationId": "GetLocations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationsResponse"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -306,6 +325,20 @@
           "longitude": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "LocationsResponse": {
+        "required": [
+          "locations"
+        ],
+        "type": "object",
+        "properties": {
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationResponse"
+            }
           }
         }
       },

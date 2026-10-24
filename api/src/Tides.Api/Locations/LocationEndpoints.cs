@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Tides.Api.Data;
 
 namespace Tides.Api.Locations;
 
@@ -15,12 +14,16 @@ public static class LocationEndpoints
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .ProducesValidationProblem();
 
+        routes.MapGet("/locations", GetLocationsAsync)
+            .WithName("GetLocations")
+            .WithTags("Locations")
+            .WithSummary("Gets all stored locations.");
+
         return routes;
     }
 
     private static async Task<Results<Created<LocationResponse>, ProblemHttpResult>> CreateLocationAsync(
         CreateLocationRequest request,
-        TidesDbContext database,
         LocationService service,
         CancellationToken cancellationToken)
     {
@@ -34,17 +37,20 @@ public static class LocationEndpoints
             return TypedResults.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "Too far from the coast.");
         }
 
-        var location = new Location
-        {
-            Name = request.Name,
-            Latitude = request.Latitude!.Value,
-            Longitude = request.Longitude!.Value
-        };
+        var response = await service.CreateLocationAsync(
+            request.Name,
+            request.Latitude!.Value,
+            request.Longitude!.Value,
+            cancellationToken);
 
-        database.Locations.Add(location);
-        await database.SaveChangesAsync(cancellationToken);
-
-        var response = new LocationResponse(location.Id, location.Name, location.Latitude, location.Longitude);
         return TypedResults.Created((string?)null, response);
+    }
+
+    private static async Task<Ok<LocationsResponse>> GetLocationsAsync(
+        LocationService service,
+        CancellationToken cancellationToken)
+    {
+        var response = await service.GetLocationsAsync(cancellationToken);
+        return TypedResults.Ok(response);
     }
 }

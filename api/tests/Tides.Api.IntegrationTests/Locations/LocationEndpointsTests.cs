@@ -194,4 +194,33 @@ public class LocationEndpointsTests(SqlServerFixture database)
             Assert.False(isSaved);
         }
     }
+
+    [Fact]
+    public async Task GetLocations_AfterCreate_ReturnsCreatedLocation()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(Tides, Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/v1/locations",
+            new CreateLocationRequest("Bodø", 67.29, 14.40),
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var location = await response.Content.ReadFromJsonAsync<LocationResponse>(cancellationToken);
+        Assert.NotNull(location);
+
+        var getResponse = await client.GetFromJsonAsync<LocationsResponse>(
+            "/v1/locations",
+            cancellationToken);
+
+        Assert.NotNull(getResponse);
+        var storedLocation = getResponse.Locations.FirstOrDefault(l => l.Id == location.Id);
+        Assert.NotNull(storedLocation);
+        Assert.Equal(location.Latitude, storedLocation.Latitude);
+        Assert.Equal(location.Longitude, storedLocation.Longitude);
+    }
 }
