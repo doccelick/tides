@@ -58,5 +58,6 @@ v1.MapStationEndpoints();
 v1.MapTideEndpoints();
 v1.MapWaterLevelEndpoints();
 v1.MapLocationEndpoints();
+v1.MapImportEndpoints();
 
 app.Run();
