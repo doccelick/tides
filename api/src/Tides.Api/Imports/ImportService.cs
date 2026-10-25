@@ -71,6 +71,27 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         return import;
     }
 
+    public async Task<ImportsResponse> GetImportsAsync(int locationId, CancellationToken cancellationToken = default)
+    {
+        var imports = await database.Imports
+            .AsNoTracking()
+            .OrderBy(i => i.From)
+            .Where(i => i.LocationId == locationId)
+            .Select(i => new ImportResponse(i.Id, i.LocationId, i.From, i.To, i.ImportedAt, i.Entries.Count))
+            .ToListAsync(cancellationToken);
+
+        return new ImportsResponse(imports);
+    }
+
+    public async Task<bool> DeleteImportAsync(int importId, CancellationToken cancellationToken = default)
+    {
+        var deletedRows = await database.Imports
+            .Where(i => i.Id == importId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deletedRows > 0;
+    }
+
     private static TideEntryType GetTideEntryType(TideType tideType) => tideType switch
     {
         TideType.High => TideEntryType.High,

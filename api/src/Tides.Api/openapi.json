@@ -256,7 +256,7 @@
         }
       }
     },
-    "/v1/locations/{id}/imports": {
+    "/v1/locations/{locationId}/imports": {
       "post": {
         "tags": [
           "Imports"
@@ -265,7 +265,7 @@
         "operationId": "CreateImport",
         "parameters": [
           {
-            "name": "id",
+            "name": "locationId",
             "in": "path",
             "required": true,
             "schema": {
@@ -335,6 +335,76 @@
                 }
               }
             }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Lists the imports for a location.",
+        "operationId": "GetImports",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/imports/{importId}": {
+      "delete": {
+        "tags": [
+          "Imports"
+        ],
+        "summary": "Deletes an import and its tide data",
+        "operationId": "DeleteImport",
+        "parameters": [
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -471,6 +541,20 @@
           "entryCount": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "ImportsResponse": {
+        "required": [
+          "imports"
+        ],
+        "type": "object",
+        "properties": {
+          "imports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportResponse"
+            }
           }
         }
       },

@@ -68,9 +68,9 @@ public sealed class LocationService(
         return deletedRows > 0;
     }
 
-    public async Task<Location?> GetLocationAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<Location?> GetLocationAsync(int locationId, CancellationToken cancellationToken = default)
     {
-        var location = await database.Locations.FindAsync([id], cancellationToken);
+        var location = await database.Locations.FindAsync([locationId], cancellationToken);
 
         return location;
     }

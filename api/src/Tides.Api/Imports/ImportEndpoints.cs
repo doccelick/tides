@@ -7,7 +7,7 @@ public static class ImportEndpoints
 {
     public static IEndpointRouteBuilder MapImportEndpoints(this IEndpointRouteBuilder routes)
     {
-        routes.MapPost("/locations/{id:int:min(1)}/imports", CreateImportAsync)
+        routes.MapPost("/locations/{locationId:int:min(1)}/imports", CreateImportAsync)
             .WithName("CreateImport")
             .WithTags("Imports")
             .WithSummary("Creates an import.")
@@ -16,17 +16,28 @@ public static class ImportEndpoints
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .ProducesValidationProblem();
 
+        routes.MapGet("/locations/{locationId:int:min(1)}/imports", GetImportsAsync)
+            .WithName("GetImports")
+            .WithTags("Imports")
+            .WithSummary("Lists the imports for a location.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        routes.MapDelete("/imports/{importId:int:min(1)}", DeleteImportAsync)
+            .WithName("DeleteImport")
+            .WithTags("Imports")
+            .WithSummary("Deletes an import and its tide data");
+
         return routes;
     }
 
     private static async Task<Results<Created<ImportResponse>, ProblemHttpResult>> CreateImportAsync(
-        int id,
+        int locationId,
         CreateImportRequest request,
         ImportService importService,
         LocationService locationService,
         CancellationToken cancellationToken)
     {
-        var location = await locationService.GetLocationAsync(id, cancellationToken);
+        var location = await locationService.GetLocationAsync(locationId, cancellationToken);
 
         if (location == null)
         {
@@ -49,5 +60,37 @@ public static class ImportEndpoints
             import.Entries.Count);
 
         return TypedResults.Created((string?)null, importResponse);
+    }
+
+    private static async Task<Results<Ok<ImportsResponse>, ProblemHttpResult>> GetImportsAsync(
+        int locationId,
+        LocationService locationService,
+        ImportService importService,
+        CancellationToken cancellationToken)
+    {
+        var location = await locationService.GetLocationAsync(locationId, cancellationToken);
+
+        if (location == null)
+        {
+            return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: "Location not found.");
+        }
+
+        var imports = await importService.GetImportsAsync(locationId, cancellationToken);
+        return TypedResults.Ok(imports);
+    }
+
+    private static async Task<Results<NoContent, NotFound>> DeleteImportAsync(
+        int importId,
+        ImportService service,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await service.DeleteImportAsync(importId, cancellationToken);
+
+        if (!deleted)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.NoContent();
     }
 }
