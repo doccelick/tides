@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tides.Api.Data;
 using Tides.Api.Kartverket;
@@ -67,7 +68,18 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         }
 
         database.Imports.Add(import);
-        await database.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+        }
+        // A concurrent import can pass the overlap check above. SQL Server error 2601 is the
+        // unique index on entries rejecting the duplicate rows.
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
+        {
+            return null;
+        }
+
         return import;
     }
 
