@@ -4,6 +4,52 @@ export type ClientOptions = {
   baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type CreateImportRequest = {
+  from: null | string;
+  to: null | string;
+};
+
+export type CreateLocationRequest = {
+  name: string;
+  latitude: null | number;
+  longitude: null | number;
+};
+
+export type HttpValidationProblemDetails = {
+  type?: null | string;
+  title?: null | string;
+  status?: null | number;
+  detail?: null | string;
+  instance?: null | string;
+  errors?: {
+    [key: string]: Array<string>;
+  };
+};
+
+export type ImportResponse = {
+  id: number;
+  locationId: number;
+  from: string;
+  to: string;
+  importedAt: string;
+  entryCount: number;
+};
+
+export type ImportsResponse = {
+  imports: Array<ImportResponse>;
+};
+
+export type LocationResponse = {
+  id: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type LocationsResponse = {
+  locations: Array<LocationResponse>;
+};
+
 export type ProblemDetails = {
   type?: null | string;
   title?: null | string;
@@ -134,3 +180,168 @@ export type GetWaterLevelResponses = {
 };
 
 export type GetWaterLevelResponse = GetWaterLevelResponses[keyof GetWaterLevelResponses];
+
+export type GetLocationsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/v1/locations";
+};
+
+export type GetLocationsResponses = {
+  /**
+   * OK
+   */
+  200: LocationsResponse;
+};
+
+export type GetLocationsResponse = GetLocationsResponses[keyof GetLocationsResponses];
+
+export type CreateLocationData = {
+  body: CreateLocationRequest;
+  path?: never;
+  query?: never;
+  url: "/v1/locations";
+};
+
+export type CreateLocationErrors = {
+  /**
+   * Bad Request
+   */
+  400: HttpValidationProblemDetails;
+  /**
+   * Unprocessable Entity
+   */
+  422: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type CreateLocationError = CreateLocationErrors[keyof CreateLocationErrors];
+
+export type CreateLocationResponses = {
+  /**
+   * Created
+   */
+  201: LocationResponse;
+};
+
+export type CreateLocationResponse = CreateLocationResponses[keyof CreateLocationResponses];
+
+export type DeleteLocationData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/v1/locations/{id}";
+};
+
+export type DeleteLocationErrors = {
+  /**
+   * Not Found
+   */
+  404: unknown;
+};
+
+export type DeleteLocationResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteLocationResponse = DeleteLocationResponses[keyof DeleteLocationResponses];
+
+export type GetImportsData = {
+  body?: never;
+  path: {
+    locationId: number;
+  };
+  query?: never;
+  url: "/v1/locations/{locationId}/imports";
+};
+
+export type GetImportsErrors = {
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+};
+
+export type GetImportsError = GetImportsErrors[keyof GetImportsErrors];
+
+export type GetImportsResponses = {
+  /**
+   * OK
+   */
+  200: ImportsResponse;
+};
+
+export type GetImportsResponse = GetImportsResponses[keyof GetImportsResponses];
+
+export type CreateImportData = {
+  body: CreateImportRequest;
+  path: {
+    locationId: number;
+  };
+  query?: never;
+  url: "/v1/locations/{locationId}/imports";
+};
+
+export type CreateImportErrors = {
+  /**
+   * Bad Request
+   */
+  400: HttpValidationProblemDetails;
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+  /**
+   * Conflict
+   */
+  409: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type CreateImportError = CreateImportErrors[keyof CreateImportErrors];
+
+export type CreateImportResponses = {
+  /**
+   * Created
+   */
+  201: ImportResponse;
+};
+
+export type CreateImportResponse = CreateImportResponses[keyof CreateImportResponses];
+
+export type DeleteImportData = {
+  body?: never;
+  path: {
+    importId: number;
+  };
+  query?: never;
+  url: "/v1/imports/{importId}";
+};
+
+export type DeleteImportErrors = {
+  /**
+   * Not Found
+   */
+  404: unknown;
+};
+
+export type DeleteImportResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteImportResponse = DeleteImportResponses[keyof DeleteImportResponses];

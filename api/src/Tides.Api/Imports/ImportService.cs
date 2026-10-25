@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tides.Api.Data;
 using Tides.Api.Kartverket;
@@ -67,8 +68,40 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         }
 
         database.Imports.Add(import);
-        await database.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+        }
+        // A concurrent import can pass the overlap check above. SQL Server error 2601 is the
+        // unique index on entries rejecting the duplicate rows.
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
+        {
+            return null;
+        }
+
         return import;
+    }
+
+    public async Task<ImportsResponse> GetImportsAsync(int locationId, CancellationToken cancellationToken = default)
+    {
+        var imports = await database.Imports
+            .AsNoTracking()
+            .OrderBy(i => i.From)
+            .Where(i => i.LocationId == locationId)
+            .Select(i => new ImportResponse(i.Id, i.LocationId, i.From, i.To, i.ImportedAt, i.Entries.Count))
+            .ToListAsync(cancellationToken);
+
+        return new ImportsResponse(imports);
+    }
+
+    public async Task<bool> DeleteImportAsync(int importId, CancellationToken cancellationToken = default)
+    {
+        var deletedRows = await database.Imports
+            .Where(i => i.Id == importId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deletedRows > 0;
     }
 
     private static TideEntryType GetTideEntryType(TideType tideType) => tideType switch

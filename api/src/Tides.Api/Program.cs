@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using Tides.Api.Data;
 using Tides.Api.Imports;
 using Tides.Api.Kartverket;
+using Tides.Api.Locations;
 using Tides.Api.Stations;
 using Tides.Api.Tides;
 using Tides.Api.WaterLevels;
@@ -25,8 +26,10 @@ builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<TideService>();
 builder.Services.AddScoped<WaterLevelService>();
 builder.Services.AddScoped<ImportService>();
+builder.Services.AddScoped<LocationService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddProblemDetails();
+builder.Services.AddValidation();
 builder.Services.AddExceptionHandler<KartverketExceptionHandler>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -54,5 +57,7 @@ var v1 = app.MapGroup("/v1");
 v1.MapStationEndpoints();
 v1.MapTideEndpoints();
 v1.MapWaterLevelEndpoints();
+v1.MapLocationEndpoints();
+v1.MapImportEndpoints();
 
 app.Run();

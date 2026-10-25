@@ -2,6 +2,8 @@ namespace Tides.Api.Imports;
 
 public sealed class Import
 {
+    public const int MaxDays = 31;
+
     public int Id { get; set; }
     public int LocationId { get; set; }
     public DateTimeOffset From { get; set; }
