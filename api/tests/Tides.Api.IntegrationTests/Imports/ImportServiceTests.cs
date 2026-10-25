@@ -8,25 +8,11 @@ namespace Tides.Api.IntegrationTests.Imports;
 
 public class ImportServiceTests(SqlServerFixture database)
 {
-    private const string Tides = """
-        <tide><locationdata><data>
-            <waterlevel value="250.0" time="2026-11-01T00:05:00+00:00" flag="high"/>
-        </data></locationdata></tide>
-    """;
-
-    private const string Predictions = """
-        <tide><locationdata><data>
-            <waterlevel value="248.0" time="2026-11-01T00:00:00+00:00" flag="pre"/>
-            <waterlevel value="250.0" time="2026-11-01T00:10:00+00:00" flag="pre"/>
-            <waterlevel value="249.0" time="2026-11-01T00:20:00+00:00" flag="pre"/>
-        </data></locationdata></tide>
-    """;
-
     [Fact]
     public async Task ImportAsync_NewRange_StoresEntriesBeforeTo()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
         await using var factory = new TidesApiFactory(database, handler);
         var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
 
@@ -62,7 +48,7 @@ public class ImportServiceTests(SqlServerFixture database)
     public async Task ImportAsync_OverlappingRange_ReturnsNullWithoutFetching()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
         await using var factory = new TidesApiFactory(database, handler);
         var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
 
@@ -88,7 +74,7 @@ public class ImportServiceTests(SqlServerFixture database)
     public async Task ImportAsync_AdjacentRange_StoresBoundaryInNextImport()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
         await using var factory = new TidesApiFactory(database, handler);
         var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
 
@@ -115,7 +101,7 @@ public class ImportServiceTests(SqlServerFixture database)
     public async Task DeleteImport_WithEntries_DeletesEntries()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
         await using var factory = new TidesApiFactory(database, handler);
         var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
 

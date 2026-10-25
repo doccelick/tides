@@ -9,45 +9,44 @@ using Tides.Api.Locations;
 
 namespace Tides.Api.IntegrationTests.Imports;
 
-public class ImportEndpointsTests(SqlServerFixture database)
+public class ImportEndpointsTests : IAsyncDisposable
 {
-    private const string Tides = """
-        <tide><locationdata><data>
-            <waterlevel value="250.0" time="2026-11-01T00:05:00+00:00" flag="high"/>
-        </data></locationdata></tide>
-    """;
+    private static readonly DateTimeOffset From = new(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset To = From.AddMinutes(20);
 
-    private const string Predictions = """
-        <tide><locationdata><data>
-            <waterlevel value="248.0" time="2026-11-01T00:00:00+00:00" flag="pre"/>
-            <waterlevel value="250.0" time="2026-11-01T00:10:00+00:00" flag="pre"/>
-            <waterlevel value="249.0" time="2026-11-01T00:20:00+00:00" flag="pre"/>
-        </data></locationdata></tide>
-    """;
+    private readonly FakeKartverketHandler _handler = new(KartverketXml.Tides, KartverketXml.Predictions);
+    private readonly TidesApiFactory _factory;
+    private readonly HttpClient _client;
+
+    public ImportEndpointsTests(SqlServerFixture database)
+    {
+        _factory = new TidesApiFactory(database, _handler);
+        _client = _factory.CreateClient();
+    }
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private async Task<Location> AddLocationAsync(CancellationToken cancellationToken)
+    {
+        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+        context.Locations.Add(location);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return location;
+    }
 
     [Fact]
     public async Task CreateImport_NewRange_ReturnsCreatedImport()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
+        var location = await AddLocationAsync(cancellationToken);
 
-        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(20);
-
-        await using (var scope = factory.Services.CreateAsyncScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            context.Locations.Add(location);
-            await context.SaveChangesAsync(cancellationToken);
-        }
-
-        var importResponse = await client.PostAsJsonAsync<CreateImportRequest>(
+        var importResponse = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
-            new CreateImportRequest(from, to),
+            new CreateImportRequest(From, To),
             cancellationToken
         );
 
@@ -56,8 +55,8 @@ public class ImportEndpointsTests(SqlServerFixture database)
         var response = await importResponse.Content.ReadFromJsonAsync<ImportResponse>(cancellationToken);
         Assert.NotNull(response);
         Assert.Equal(location.Id, response.LocationId);
-        Assert.Equal(from, response.From);
-        Assert.Equal(to, response.To);
+        Assert.Equal(From, response.From);
+        Assert.Equal(To, response.To);
         Assert.Equal(3, response.EntryCount);
     }
 
@@ -65,122 +64,54 @@ public class ImportEndpointsTests(SqlServerFixture database)
     public async Task CreateImport_OverlappingRange_ReturnsConflict()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
+        var location = await AddLocationAsync(cancellationToken);
 
-        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(20);
-
-        await using (var scope = factory.Services.CreateAsyncScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            context.Locations.Add(location);
-            await context.SaveChangesAsync(cancellationToken);
-        }
-
-        await client.PostAsJsonAsync<CreateImportRequest>(
+        await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
-            new CreateImportRequest(from, to),
+            new CreateImportRequest(From, To),
             cancellationToken
         );
 
-        var second = await client.PostAsJsonAsync<CreateImportRequest>(
+        var second = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
-            new CreateImportRequest(from.AddMinutes(10), to.AddMinutes(10)),
+            new CreateImportRequest(From.AddMinutes(10), To.AddMinutes(10)),
             cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
-        Assert.Equal(2, handler.RequestCount);
+        Assert.Equal(2, _handler.RequestCount);
     }
 
     [Fact]
     public async Task CreateImport_UnknownId_ReturnsNotFound()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(20);
-
-        var response = await client.PostAsJsonAsync<CreateImportRequest>(
+        var response = await _client.PostAsJsonAsync(
             $"/v1/locations/{int.MaxValue}/imports",
-            new CreateImportRequest(from, to),
+            new CreateImportRequest(From, To),
             cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Equal(0, handler.RequestCount);
+        Assert.Equal(0, _handler.RequestCount);
     }
+
+    public static TheoryData<object> InvalidCreateRequests => new()
+    {
+        new { From, To = From.AddMinutes(-20) },
+        new { From, To = From },
+        new { From, To = From.AddDays(Import.MaxDays).AddMinutes(1) },
+        new { From },
+    };
 
     [Theory]
-    [InlineData(-20)]
-    [InlineData(0)]
-    public async Task CreateImport_InvalidRange_ReturnsValidationProblem(int toOffset)
+    [MemberData(nameof(InvalidCreateRequests))]
+    public async Task CreateImport_InvalidRequest_ReturnsValidationProblemForTo(object request)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(toOffset);
-
-        var response = await client.PostAsJsonAsync<CreateImportRequest>(
-            $"/v1/locations/{int.MaxValue}/imports",
-            new CreateImportRequest(from, to),
-            cancellationToken
-        );
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("To", problem.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task CreateImport_RangeOverMax_ReturnsValidationProblem()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddDays(Import.MaxDays).AddMinutes(1);
-
-        var response = await client.PostAsJsonAsync<CreateImportRequest>(
-            $"/v1/locations/{int.MaxValue}/imports",
-            new CreateImportRequest(from, to),
-            cancellationToken
-        );
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("To", problem.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task CreateImport_MissingTo_ReturnsValidationProblem()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-
-        var response = await client.PostAsJsonAsync(
-            $"/v1/locations/{int.MaxValue}/imports",
-            new { From = from },
-            cancellationToken
-        );
+        var response = await _client.PostAsJsonAsync($"/v1/locations/{int.MaxValue}/imports", request, cancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
@@ -192,31 +123,17 @@ public class ImportEndpointsTests(SqlServerFixture database)
     public async Task GetImports_AfterCreate_ReturnsCreatedImport()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
+        var location = await AddLocationAsync(cancellationToken);
 
-        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(20);
-
-        await using (var scope = factory.Services.CreateAsyncScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            context.Locations.Add(location);
-            await context.SaveChangesAsync(cancellationToken);
-        }
-
-        var importResponse = await client.PostAsJsonAsync<CreateImportRequest>(
+        var importResponse = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
-            new CreateImportRequest(from, to),
+            new CreateImportRequest(From, To),
             cancellationToken
         );
 
         Assert.Equal(HttpStatusCode.Created, importResponse.StatusCode);
 
-        var getResponse = await client.GetFromJsonAsync<ImportsResponse>(
+        var getResponse = await _client.GetFromJsonAsync<ImportsResponse>(
             $"/v1/locations/{location.Id}/imports",
             cancellationToken
         );
@@ -224,19 +141,16 @@ public class ImportEndpointsTests(SqlServerFixture database)
         Assert.NotNull(getResponse);
         var import = Assert.Single(getResponse.Imports);
         Assert.Equal(3, import.EntryCount);
-        Assert.Equal(from, import.From);
-        Assert.Equal(to, import.To);
+        Assert.Equal(From, import.From);
+        Assert.Equal(To, import.To);
     }
 
     [Fact]
     public async Task GetImports_UnknownLocation_ReturnsNotFound()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var getResponse = await client.GetAsync(
+        var getResponse = await _client.GetAsync(
             $"/v1/locations/{int.MaxValue}/imports",
             cancellationToken
         );
@@ -248,35 +162,24 @@ public class ImportEndpointsTests(SqlServerFixture database)
     public async Task DeleteImport_WithEntries_DeletesImportedData()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
-
-        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
-        var to = from.AddMinutes(20);
+        var location = await AddLocationAsync(cancellationToken);
 
         Import? import;
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = _factory.Services.CreateAsyncScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            context.Locations.Add(location);
-            await context.SaveChangesAsync(cancellationToken);
-
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-            import = await service.ImportAsync(location, from, to, cancellationToken);
+            import = await service.ImportAsync(location, From, To, cancellationToken);
             Assert.NotNull(import);
         }
 
-        var deleteResponse = await client.DeleteAsync(
+        var deleteResponse = await _client.DeleteAsync(
             $"/v1/imports/{import.Id}",
             cancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = _factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             var hasEntries = await context.TideEntries.AnyAsync(e => e.ImportId == import.Id, cancellationToken);
@@ -289,11 +192,8 @@ public class ImportEndpointsTests(SqlServerFixture database)
     public async Task DeleteImport_UnknownId_ReturnsNotFound()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var deleteResponse = await client.DeleteAsync(
+        var deleteResponse = await _client.DeleteAsync(
             $"/v1/imports/{int.MaxValue}",
             cancellationToken);
 

@@ -9,39 +9,27 @@ using Tides.Api.Locations;
 
 namespace Tides.Api.IntegrationTests.Locations;
 
-public class LocationEndpointsTests(SqlServerFixture database)
+public class LocationEndpointsTests : IAsyncDisposable
 {
-    private const string Tides = """
-        <tide><locationdata><data>
-            <waterlevel value="250.0" time="2026-11-01T00:05:00+00:00" flag="high"/>
-        </data></locationdata></tide>
-    """;
+    private readonly SqlServerFixture _database;
+    private readonly TidesApiFactory _factory;
+    private readonly HttpClient _client;
 
-    private const string Predictions = """
-        <tide><locationdata><data>
-            <waterlevel value="248.0" time="2026-11-01T00:00:00+00:00" flag="pre"/>
-            <waterlevel value="250.0" time="2026-11-01T00:10:00+00:00" flag="pre"/>
-            <waterlevel value="249.0" time="2026-11-01T00:20:00+00:00" flag="pre"/>
-        </data></locationdata></tide>
-    """;
+    public LocationEndpointsTests(SqlServerFixture database)
+    {
+        _database = database;
+        _factory = new TidesApiFactory(database, new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions));
+        _client = _factory.CreateClient();
+    }
 
-    private const string NoData = """
-        <tide>
-            <locationdata>
-                <nodata info="Sorry. There are no sea level data for N61°54.0' E10°16.8' because N61°54.0' E10°16.8' is too far away from the coast."/>
-            </locationdata>
-        </tide>
-    """;
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
 
     [Fact]
     public async Task CreateLocation_ValidRequest_ReturnsCreatedLocation()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await _client.PostAsJsonAsync(
             "/v1/locations",
             new CreateLocationRequest("Bodø", 67.29, 14.40),
             cancellationToken);
@@ -52,142 +40,48 @@ public class LocationEndpointsTests(SqlServerFixture database)
         Assert.Equal("Bodø", location.Name);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task CreateLocation_MissingName_ReturnsValidationProblem(string name)
+    public static TheoryData<object, string> InvalidCreateRequests => new()
     {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new CreateLocationRequest(name, 67.29, 14.40),
-            cancellationToken);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("Name", problem.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task CreateLocation_NameTooLong_ReturnsValidationProblem()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new CreateLocationRequest(new string('a', Location.NameMaxLength + 1), 67.29, 14.40),
-            cancellationToken);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("Name", problem.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task CreateLocation_MissingLatitude_ReturnsValidationProblem()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new { Name = "Bodø", Longitude = 14.40 },
-            cancellationToken);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("Latitude", problem.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task CreateLocation_MissingLongitude_ReturnsValidationProblem()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new { Name = "Bodø", Latitude = 67.29 },
-            cancellationToken);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("Longitude", problem.Errors.Keys);
-    }
+        { new { Name = "", Latitude = 67.29, Longitude = 14.40 }, "Name" },
+        { new { Name = "   ", Latitude = 67.29, Longitude = 14.40 }, "Name" },
+        { new { Name = new string('a', Location.NameMaxLength + 1), Latitude = 67.29, Longitude = 14.40 }, "Name" },
+        { new { Name = "Bodø", Longitude = 14.40 }, "Latitude" },
+        { new { Name = "Bodø", Latitude = -91.0, Longitude = 14.40 }, "Latitude" },
+        { new { Name = "Bodø", Latitude = 91.0, Longitude = 14.40 }, "Latitude" },
+        { new { Name = "Bodø", Latitude = 67.29 }, "Longitude" },
+        { new { Name = "Bodø", Latitude = 67.29, Longitude = -181.0 }, "Longitude" },
+        { new { Name = "Bodø", Latitude = 67.29, Longitude = 181.0 }, "Longitude" },
+    };
 
     [Theory]
-    [InlineData(-91)]
-    [InlineData(91)]
-    public async Task CreateLocation_LatitudeOutsideRange_ReturnsValidationProblem(double latitude)
+    [MemberData(nameof(InvalidCreateRequests))]
+    public async Task CreateLocation_InvalidRequest_ReturnsValidationProblem(object request, string field)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new CreateLocationRequest("Bodø", latitude, 10.00),
-            cancellationToken);
+        var response = await _client.PostAsJsonAsync("/v1/locations", request, cancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
         Assert.NotNull(problem);
-        Assert.Contains("Latitude", problem.Errors.Keys);
-    }
-
-    [Theory]
-    [InlineData(-181)]
-    [InlineData(181)]
-    public async Task CreateLocation_LongitudeOutsideRange_ReturnsValidationProblem(double longitude)
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/v1/locations",
-            new CreateLocationRequest("Bodø", 0, longitude),
-            cancellationToken);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
-        Assert.NotNull(problem);
-        Assert.Contains("Longitude", problem.Errors.Keys);
+        Assert.Contains(field, problem.Errors.Keys);
     }
 
     [Fact]
     public async Task CreateLocation_InlandCoordinate_ReturnsUnprocessableEntity()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, NoData);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
+        await using var inlandFactory = new TidesApiFactory(_database, new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.NoData));
+        var inlandClient = inlandFactory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await inlandClient.PostAsJsonAsync(
             "/v1/locations",
             new CreateLocationRequest("Lesja", 61.54, 10.168),
             cancellationToken);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = inlandFactory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             var isSaved = await context.Locations.AnyAsync(l => l.Name == "Lesja", cancellationToken);
@@ -200,11 +94,8 @@ public class LocationEndpointsTests(SqlServerFixture database)
     public async Task GetLocations_AfterCreate_ReturnsCreatedLocation()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await _client.PostAsJsonAsync(
             "/v1/locations",
             new CreateLocationRequest("Bodø", 67.29, 14.40),
             cancellationToken);
@@ -214,7 +105,7 @@ public class LocationEndpointsTests(SqlServerFixture database)
         var location = await response.Content.ReadFromJsonAsync<LocationResponse>(cancellationToken);
         Assert.NotNull(location);
 
-        var getResponse = await client.GetFromJsonAsync<LocationsResponse>(
+        var getResponse = await _client.GetFromJsonAsync<LocationsResponse>(
             "/v1/locations",
             cancellationToken);
 
@@ -229,11 +120,8 @@ public class LocationEndpointsTests(SqlServerFixture database)
     public async Task DeleteLocation_ExistingLocation_ReturnsNoContent()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync(
+        var response = await _client.PostAsJsonAsync(
             "/v1/locations",
             new CreateLocationRequest("Bodø", 67.29, 14.40),
             cancellationToken);
@@ -243,13 +131,13 @@ public class LocationEndpointsTests(SqlServerFixture database)
         var location = await response.Content.ReadFromJsonAsync<LocationResponse>(cancellationToken);
         Assert.NotNull(location);
 
-        var deleteResponse = await client.DeleteAsync(
+        var deleteResponse = await _client.DeleteAsync(
             $"/v1/locations/{location.Id}",
             cancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = _factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             var isSaved = await context.Locations.AnyAsync(l => l.Id == location.Id, cancellationToken);
@@ -262,11 +150,8 @@ public class LocationEndpointsTests(SqlServerFixture database)
     public async Task DeleteLocation_UnknownId_ReturnsNotFound()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
-        var deleteResponse = await client.DeleteAsync(
+        var deleteResponse = await _client.DeleteAsync(
             $"/v1/locations/{int.MaxValue}",
             cancellationToken);
 
@@ -277,9 +162,6 @@ public class LocationEndpointsTests(SqlServerFixture database)
     public async Task DeleteLocation_WithImport_DeletesEntries()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var handler = new FakeKartverketHandler(Tides, Predictions);
-        await using var factory = new TidesApiFactory(database, handler);
-        var client = factory.CreateClient();
 
         var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
 
@@ -288,7 +170,7 @@ public class LocationEndpointsTests(SqlServerFixture database)
 
         Import? import;
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = _factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             context.Locations.Add(location);
@@ -299,13 +181,13 @@ public class LocationEndpointsTests(SqlServerFixture database)
             Assert.NotNull(import);
         }
 
-        var deleteResponse = await client.DeleteAsync(
+        var deleteResponse = await _client.DeleteAsync(
             $"/v1/locations/{location.Id}",
             cancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
 
-        await using (var scope = factory.Services.CreateAsyncScope())
+        await using (var scope = _factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             var hasEntries = await context.TideEntries.AnyAsync(e => e.ImportId == import.Id, cancellationToken);
