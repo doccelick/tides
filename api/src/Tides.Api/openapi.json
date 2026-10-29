@@ -259,6 +259,62 @@
         }
       }
     },
+    "/v1/locations/{id}/water-level": {
+      "get": {
+        "tags": [
+          "Water levels"
+        ],
+        "summary": "Returns an estimated water level for a specified location, from the weather effect at the nearest station within 50 km.",
+        "operationId": "GetLocationWaterLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimatedWaterLevelResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/locations": {
       "post": {
         "tags": [
@@ -570,6 +626,58 @@
               "null",
               "number"
             ],
+            "format": "double"
+          }
+        }
+      },
+      "EstimatedWaterLevelResponse": {
+        "required": [
+          "locationId",
+          "timeZone",
+          "unit",
+          "reference",
+          "time",
+          "levelCm",
+          "stationCode",
+          "stationName",
+          "distanceKm",
+          "weatherEffectCm"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "levelCm": {
+            "type": "number",
+            "format": "double"
+          },
+          "stationCode": {
+            "type": "string"
+          },
+          "stationName": {
+            "type": "string"
+          },
+          "distanceKm": {
+            "type": "number",
+            "format": "double"
+          },
+          "weatherEffectCm": {
+            "type": "number",
             "format": "double"
           }
         }
