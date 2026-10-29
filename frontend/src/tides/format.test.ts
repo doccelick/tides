@@ -30,6 +30,18 @@ describe("formatTideDay", () => {
     expect(formatTideDay(tide, now)).toBe("yesterday");
   });
 
+  it("returns the weekday and date for a tide two or more days ahead", () => {
+    const tide = "2026-10-21T16:00:00+00:00";
+    const now = new Date("2026-10-19T16:00:00Z");
+    expect(formatTideDay(tide, now)).toBe("Wed 21 Oct");
+  });
+
+  it("returns the weekday and date for a tide two or more days back", () => {
+    const tide = "2026-10-12T16:00:00+00:00";
+    const now = new Date("2026-10-19T16:00:00Z");
+    expect(formatTideDay(tide, now)).toBe("Mon 12 Oct");
+  });
+
   it("follows the local day, not the UTC day", () => {
     const tide = "2026-10-19T23:30:00+00:00";
     const now = new Date("2026-10-19T12:00:00Z");

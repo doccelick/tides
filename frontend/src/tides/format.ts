@@ -3,8 +3,14 @@ const timeFormat = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
 });
 
-const dayFormat = new Intl.RelativeTimeFormat("en", {
+const relativeDayFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
+});
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
 });
 
 const levelFormat = new Intl.NumberFormat("en-GB", {
@@ -25,12 +31,16 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+// Names the day relative to today when it is within a day of it, and by weekday and date otherwise.
 export function formatTideDay(tide: string, now: Date): string {
   const tideDay = startOfDay(new Date(tide));
   const today = startOfDay(now);
   const duration = tideDay.getTime() - today.getTime();
   const days = Math.round(duration / millisecondsPerDay);
-  return dayFormat.format(days, "day");
+  if (Math.abs(days) <= 1) {
+    return relativeDayFormat.format(days, "day");
+  }
+  return dateFormat.format(tideDay);
 }
 
 export function formatTideLevel(levelCm: number): string {
