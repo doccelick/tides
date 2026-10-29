@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -17,12 +18,15 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     {
         public int RequestCount { get; private set; }
 
+        public string? LastTidesQuery { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var isStationList = request.RequestUri!.Query.Contains("tide_request=stationlist");
             if (!isStationList)
             {
                 RequestCount++;
+                LastTidesQuery = request.RequestUri.Query;
             }
 
             var content = isStationList ? stationList : tides;
@@ -141,5 +145,39 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
 
         Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
         Assert.Equal(firstResponse.Headers.ETag, response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task GetStationTides_FromAndDays_FetchesThatRangeFromKartverket()
+    {
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = await CreateHandlerAsync("locationdata.xml", cancellationToken);
+        await using var app = CreateApp(handler, timeProvider);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/v1/stations/BOO/tides?from=2026-09-01&days=7", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("fromtime=2026-09-01T00:00&totime=2026-09-08T00:00", handler.LastTidesQuery);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(32)]
+    public async Task GetStationTides_DaysOutOfRange_ReturnsValidationProblem(int days)
+    {
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = await CreateHandlerAsync("locationdata.xml", cancellationToken);
+        await using var app = CreateApp(handler, timeProvider);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync($"/v1/stations/BOO/tides?days={days}", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
+        Assert.Contains("days", body!.Errors.Keys);
+        Assert.Equal(0, handler.RequestCount);
     }
 }
