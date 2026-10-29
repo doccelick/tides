@@ -1,7 +1,9 @@
 import type { TideResponse } from "@/api/generated";
+import type { Ref } from "react";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { cn } from "cn";
 import { formatTideDay, formatTideLevel, formatTideTime } from "./format";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface TideTileProps {
@@ -38,12 +40,34 @@ export function TideTile({ tide, now, isPast }: TideTileProps) {
   );
 }
 
-export function TideTileSkeleton() {
+interface TideTileSkeletonProps {
+  ref?: Ref<HTMLLIElement>;
+}
+
+export function TideTileSkeleton({ ref }: TideTileSkeletonProps) {
   return (
-    <li className={tileClassName}>
+    <li ref={ref} className={tileClassName}>
       <Skeleton className="h-5 w-20" />
       <Skeleton className="mt-1 h-8 w-16" />
       <Skeleton className="mt-1 h-5 w-24" />
+    </li>
+  );
+}
+
+interface TideTileRetryProps {
+  message: string;
+  onRetry: () => void;
+}
+
+export function TideTileRetry({ message, onRetry }: TideTileRetryProps) {
+  return (
+    <li className={tileClassName}>
+      <p role="alert" className="text-sm">
+        {message}
+      </p>
+      <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
+        Retry
+      </Button>
     </li>
   );
 }
