@@ -10,7 +10,7 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | --- | --- |
 | `GET /health` | `Healthy` as plain text when the API is up |
 | `GET /v1/stations` | Kartverket's permanent tide stations |
-| `GET /v1/stations/{code}/tides` | High and low tides at a station for today and tomorrow (UTC) |
+| `GET /v1/stations/{code}/tides` | High and low tides at a station for a range of UTC days, today and tomorrow by default |
 | `GET /v1/stations/{code}/water-level` | The latest observed water level at a station |
 
 ## Stations
@@ -30,7 +30,14 @@ The API fetches the station list from Kartverket on the first request and keeps 
 
 ## Tides
 
-`GET /v1/stations/{code}/tides` returns the high and low tides at a station for today and tomorrow, counted in UTC. The station code is not case-sensitive, so `boo` and `BOO` give the same result.
+`GET /v1/stations/{code}/tides` returns the high and low tides at a station for a range of days, counted in UTC. The station code is not case-sensitive, so `boo` and `BOO` give the same result.
+
+| Query parameter | Meaning | Default |
+| --- | --- | --- |
+| `from` | First day of the range as `YYYY-MM-DD`, in the past or the future | Today (UTC) |
+| `days` | Number of days in the range, from 1 to 31 | `2` |
+
+For example, `GET /v1/stations/BOO/tides?from=2026-11-01&days=7` returns the tides from 1 November up to the start of 8 November.
 
 ```json
 {
@@ -47,7 +54,7 @@ The API fetches the station list from Kartverket on the first request and keeps 
 
 Times are in UTC. Levels are in centimetres above chart datum (CD), the reference level used on Norwegian nautical charts and close to the lowest astronomical tide. A level is rarely negative, and only when the water falls below chart datum.
 
-The API fetches a station's tides from Kartverket on the first request each UTC day, and answers the rest of that day's requests for the station from memory.
+The API fetches a station's tides for a range from Kartverket on the first request, and answers later requests for the same range from memory for 24 hours. A request without `from` starts on the current UTC day, so it gets a new range when the day changes.
 
 ## Water level
 
@@ -78,6 +85,7 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 
 | Status | When |
 | --- | --- |
+| `400 Bad Request` | `from` is not a valid date, or `days` is not a whole number from 1 to 31. An invalid `days` value is listed under `errors` |
 | `404 Not Found` | The station code is unknown. The title is `Station not found.` |
 | `404 Not Found` | Kartverket has no tide data for the station. The title is `No tide data for this station.` |
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |

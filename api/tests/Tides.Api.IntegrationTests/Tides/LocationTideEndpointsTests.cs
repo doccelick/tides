@@ -93,4 +93,39 @@ public class LocationTideEndpointsTests : IAsyncDisposable
         Assert.Single(response.Tides);
         Assert.Equal(requestsAfterImport + 1, _handler.RequestCount);
     }
+
+    [Fact]
+    public async Task GetLocationTides_ImportedRangeInPast_ReturnsStoredHighsAndLows()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+        await ImportAsync(location, Today.AddDays(-5), Today.AddDays(1), cancellationToken);
+        var requestsAfterImport = _handler.RequestCount;
+
+        var response = await _client.GetFromJsonAsync<TidesResponse>(
+            $"/v1/locations/{location.Id}/tides?from=2026-10-27&days=6",
+            cancellationToken);
+
+        Assert.NotNull(response);
+        var tide = Assert.Single(response.Tides);
+        Assert.Equal(new TideResponse(TideType.High, Today.AddMinutes(5), 250.0), tide);
+        Assert.Equal(requestsAfterImport, _handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task GetLocationTides_RangePastImportedWindow_FetchesFromKartverket()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+        await ImportAsync(location, Today, Today.AddDays(2), cancellationToken);
+        var requestsAfterImport = _handler.RequestCount;
+
+        var response = await _client.GetFromJsonAsync<TidesResponse>(
+            $"/v1/locations/{location.Id}/tides?days=7",
+            cancellationToken);
+
+        Assert.NotNull(response);
+        Assert.Single(response.Tides);
+        Assert.Equal(requestsAfterImport + 1, _handler.RequestCount);
+    }
 }

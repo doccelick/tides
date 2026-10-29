@@ -123,11 +123,18 @@ export type GetStationTidesData = {
   path: {
     code: string;
   };
-  query?: never;
+  query?: {
+    from?: string;
+    days?: number;
+  };
   url: "/v1/stations/{code}/tides";
 };
 
 export type GetStationTidesErrors = {
+  /**
+   * Bad Request
+   */
+  400: HttpValidationProblemDetails;
   /**
    * Not Found
    */
@@ -154,11 +161,18 @@ export type GetLocationTidesData = {
   path: {
     id: number;
   };
-  query?: never;
+  query?: {
+    from?: string;
+    days?: number;
+  };
   url: "/v1/locations/{id}/tides";
 };
 
 export type GetLocationTidesErrors = {
+  /**
+   * Bad Request
+   */
+  400: HttpValidationProblemDetails;
   /**
    * Not Found
    */
