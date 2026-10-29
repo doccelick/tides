@@ -12,6 +12,8 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | `GET /v1/stations` | Kartverket's permanent tide stations |
 | `GET /v1/stations/{code}/tides` | High and low tides at a station for a range of UTC days, today and tomorrow by default |
 | `GET /v1/stations/{code}/water-level` | The latest observed water level at a station |
+| `GET /v1/locations/{id}/tides` | High and low tides at a saved location, with the same range as for stations |
+| `GET /v1/locations/{id}/water-level` | An estimated water level at a saved location, based on the nearest station |
 
 ## Stations
 
@@ -41,7 +43,6 @@ For example, `GET /v1/stations/BOO/tides?from=2026-11-01&days=7` returns the tid
 
 ```json
 {
-  "stationCode": "BOO",
   "timeZone": "UTC",
   "unit": "cm",
   "reference": "CD",
@@ -55,6 +56,8 @@ For example, `GET /v1/stations/BOO/tides?from=2026-11-01&days=7` returns the tid
 Times are in UTC. Levels are in centimetres above chart datum (CD), the reference level used on Norwegian nautical charts and close to the lowest astronomical tide. A level is rarely negative, and only when the water falls below chart datum.
 
 The API fetches a station's tides for a range from Kartverket on the first request, and answers later requests for the same range from memory for 24 hours. A request without `from` starts on the current UTC day, so it gets a new range when the day changes.
+
+`GET /v1/locations/{id}/tides` returns the same response for a saved location, with the same `from` and `days` parameters. When imports for the location cover the whole range, the API reads the tides from the database. Otherwise it fetches them from Kartverket for the location's position and keeps them in memory for 24 hours, as for stations.
 
 ## Water level
 
@@ -75,9 +78,36 @@ The API fetches a station's tides for a range from Kartverket on the first reque
 
 The API returns a level only if it was at most 30 minutes old when the API fetched it from Kartverket. It keeps a station's level in memory for 5 minutes, and browsers may keep the response for another 5, so a level can be up to 40 minutes old when shown.
 
+### Water level at a location
+
+`GET /v1/locations/{id}/water-level` returns an estimated water level at a saved location. Locations have no measurements of their own, so the API estimates the level from the nearest station within 50 km:
+
+1. It takes the station's latest observed level from the last 30 minutes.
+2. The weather effect is that level minus the station's predicted level at the same time.
+3. The estimate is the location's predicted level at that time plus the weather effect.
+
+```json
+{
+  "locationId": 7,
+  "timeZone": "UTC",
+  "unit": "cm",
+  "reference": "CD",
+  "time": "2026-11-01T00:20:00+00:00",
+  "levelCm": 241.0,
+  "stationCode": "BOO",
+  "stationName": "Bodø",
+  "distanceKm": 4.7,
+  "weatherEffectCm": 11.0
+}
+```
+
+`time` is when the station measured its level, so the estimate is for that time and not for the moment of the request. `distanceKm` is the distance from the location to the station. `levelCm`, `distanceKm` and `weatherEffectCm` are rounded to one decimal.
+
+The API keeps a location's estimate in memory for 5 minutes, like a station's level.
+
 ## Caching
 
-`GET /v1/stations` and `GET /v1/stations/{code}/tides` respond with `Cache-Control: public, max-age=3600` and an `ETag`. `GET /v1/stations/{code}/water-level` changes more often and responds with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
+`GET /v1/stations` and both tide endpoints respond with `Cache-Control: public, max-age=3600` and an `ETag`. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
 
 ## Errors
 
@@ -89,6 +119,9 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | `404 Not Found` | The station code is unknown. The title is `Station not found.` |
 | `404 Not Found` | Kartverket has no tide data for the station. The title is `No tide data for this station.` |
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |
+| `404 Not Found` | The location id is unknown. The title is `Location not found.` |
+| `404 Not Found` | Kartverket has no tide data for the location. The title is `No tide data for this location.` |
+| `404 Not Found` | No station is within 50 km of the location, or the nearest one has no water level from the last 30 minutes. The title is `No water level estimate for this location.` |
 | `502 Bad Gateway` | Kartverket's Tide API fails, times out or returns a response the API cannot read |
 
 ## Cross-origin requests
