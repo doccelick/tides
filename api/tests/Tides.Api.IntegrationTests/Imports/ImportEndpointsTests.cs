@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tides.Api.Data;
 using Tides.Api.Imports;
-using Tides.Api.Locations;
 
 namespace Tides.Api.IntegrationTests.Imports;
 
@@ -26,23 +25,11 @@ public class ImportEndpointsTests : IAsyncDisposable
 
     public ValueTask DisposeAsync() => _factory.DisposeAsync();
 
-    private async Task<Location> AddLocationAsync(CancellationToken cancellationToken)
-    {
-        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
-
-        await using var scope = _factory.Services.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-        context.Locations.Add(location);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return location;
-    }
-
     [Fact]
     public async Task CreateImport_NewRange_ReturnsCreatedImport()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var location = await AddLocationAsync(cancellationToken);
+        var location = await _factory.AddLocationAsync(cancellationToken);
 
         var importResponse = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
@@ -64,7 +51,7 @@ public class ImportEndpointsTests : IAsyncDisposable
     public async Task CreateImport_OverlappingRange_ReturnsConflict()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var location = await AddLocationAsync(cancellationToken);
+        var location = await _factory.AddLocationAsync(cancellationToken);
 
         await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
@@ -123,7 +110,7 @@ public class ImportEndpointsTests : IAsyncDisposable
     public async Task GetImports_AfterCreate_ReturnsCreatedImport()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var location = await AddLocationAsync(cancellationToken);
+        var location = await _factory.AddLocationAsync(cancellationToken);
 
         var importResponse = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
@@ -162,7 +149,7 @@ public class ImportEndpointsTests : IAsyncDisposable
     public async Task DeleteImport_WithEntries_DeletesImportedData()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var location = await AddLocationAsync(cancellationToken);
+        var location = await _factory.AddLocationAsync(cancellationToken);
 
         Import? import;
 
