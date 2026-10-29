@@ -25,7 +25,7 @@ export function StationCard({ station, onClose }: StationCardProps) {
         </Button>
       </div>
       <CurrentLevel code={station.code} />
-      <TidePanel code={station.code} />
+      <TidePanel key={station.code} code={station.code} />
     </section>
   );
 }
