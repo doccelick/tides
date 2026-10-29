@@ -44,7 +44,7 @@
         "tags": [
           "Tides"
         ],
-        "summary": "Returns high and low tides for today and tomorrow (UTC) for a specified station.",
+        "summary": "Returns high and low tides for a range of UTC days for a specified station. Defaults to today and tomorrow.",
         "operationId": "GetStationTides",
         "parameters": [
           {
@@ -53,6 +53,24 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "maximum": 31,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -69,6 +87,16 @@
           },
           "304": {
             "description": "Not Modified"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",
@@ -98,7 +126,7 @@
         "tags": [
           "Tides"
         ],
-        "summary": "Returns high and low tides for today and tomorrow (UTC) for a specified location.",
+        "summary": "Returns high and low tides for a range of UTC days for a specified location. Defaults to today and tomorrow.",
         "operationId": "GetLocationTides",
         "parameters": [
           {
@@ -106,6 +134,24 @@
             "in": "path",
             "required": true,
             "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "maximum": 31,
               "minimum": 1,
               "type": "integer",
               "format": "int32"
@@ -125,6 +171,16 @@
           },
           "304": {
             "description": "Not Modified"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found",

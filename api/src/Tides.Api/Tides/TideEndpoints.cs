@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
 using Tides.Api.Locations;
@@ -7,21 +8,26 @@ namespace Tides.Api.Tides;
 
 public static class TideEndpoints
 {
+    private const int DefaultDays = 2;
+    private const int MaxDays = 31;
+
     public static IEndpointRouteBuilder MapTideEndpoints(this IEndpointRouteBuilder routes)
     {
         routes.MapGet("/stations/{code}/tides", GetStationTidesAsync)
             .WithName("GetStationTides")
             .WithTags("Tides")
-            .WithSummary("Returns high and low tides for today and tomorrow (UTC) for a specified station.")
+            .WithSummary("Returns high and low tides for a range of UTC days for a specified station. Defaults to today and tomorrow.")
             .Produces(StatusCodes.Status304NotModified)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status502BadGateway);
 
         routes.MapGet("/locations/{id:int:min(1)}/tides", GetLocationTidesAsync)
             .WithName("GetLocationTides")
             .WithTags("Tides")
-            .WithSummary("Returns high and low tides for today and tomorrow (UTC) for a specified location.")
+            .WithSummary("Returns high and low tides for a range of UTC days for a specified location. Defaults to today and tomorrow.")
             .Produces(StatusCodes.Status304NotModified)
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status502BadGateway);
 
@@ -30,6 +36,8 @@ public static class TideEndpoints
 
     private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetStationTidesAsync(
         string code,
+        DateOnly? from,
+        [Range(1, MaxDays)] int? days,
         StationService stationService,
         TideService tideService,
         HttpContext context,
@@ -42,13 +50,20 @@ public static class TideEndpoints
             return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: "Station not found.");
         }
 
-        var snapshot = await tideService.GetTidesAsync(station.Latitude, station.Longitude, cancellationToken);
+        var snapshot = await tideService.GetTidesAsync(
+            station.Latitude,
+            station.Longitude,
+            from,
+            days ?? DefaultDays,
+            cancellationToken);
 
         return ToResult(snapshot, context, "No tide data for this station.");
     }
 
     private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
         int id,
+        DateOnly? from,
+        [Range(1, MaxDays)] int? days,
         LocationService locationService,
         TideService tideService,
         HttpContext context,
@@ -61,7 +76,7 @@ public static class TideEndpoints
             return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: "Location not found.");
         }
 
-        var snapshot = await tideService.GetTidesAsync(location, cancellationToken);
+        var snapshot = await tideService.GetTidesAsync(location, from, days ?? DefaultDays, cancellationToken);
 
         return ToResult(snapshot, context, "No tide data for this location.");
     }

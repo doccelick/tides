@@ -22,11 +22,50 @@ public sealed class TideService(
         LocalCacheExpiration = TimeSpan.FromHours(24),
     };
 
-    public async ValueTask<TidesSnapshot> GetTidesAsync(double latitude, double longitude, CancellationToken cancellationToken = default)
+    public async ValueTask<TidesSnapshot> GetTidesAsync(
+        double latitude,
+        double longitude,
+        DateOnly? firstDay,
+        int days,
+        CancellationToken cancellationToken = default)
     {
-        var (from, to) = GetTodayAndTomorrow();
+        var (from, to) = GetRange(firstDay, days);
 
-        var cacheKey = string.Create(CultureInfo.InvariantCulture, $"tides:{latitude}:{longitude}:{from:yyyy-MM-dd}");
+        return await GetLiveTidesAsync(latitude, longitude, from, to, cancellationToken);
+    }
+
+    public async ValueTask<TidesSnapshot> GetTidesAsync(
+        Location location,
+        DateOnly? firstDay,
+        int days,
+        CancellationToken cancellationToken = default)
+    {
+        var (from, to) = GetRange(firstDay, days);
+
+        if (!await IsCoveredByImportsAsync(location.Id, from, to, cancellationToken))
+        {
+            return await GetLiveTidesAsync(location.Latitude, location.Longitude, from, to, cancellationToken);
+        }
+
+        return CreateSnapshot(await GetStoredTidesAsync(location.Id, from, to, cancellationToken));
+    }
+
+    private (DateTimeOffset From, DateTimeOffset To) GetRange(DateOnly? firstDay, int days)
+    {
+        var day = firstDay ?? DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var from = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+        return (from, from.AddDays(days));
+    }
+
+    private async ValueTask<TidesSnapshot> GetLiveTidesAsync(
+        double latitude,
+        double longitude,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = string.Create(CultureInfo.InvariantCulture, $"tides:{latitude}:{longitude}:{from:yyyy-MM-dd}:{to:yyyy-MM-dd}");
 
         return await cache.GetOrCreateAsync(cacheKey, async ct =>
         {
@@ -34,25 +73,6 @@ public sealed class TideService(
 
             return CreateSnapshot([.. tides.Select(t => new TideResponse(t.Type, t.Time, t.LevelCm))]);
         }, CacheOptions, cancellationToken: cancellationToken);
-    }
-
-    public async ValueTask<TidesSnapshot> GetTidesAsync(Location location, CancellationToken cancellationToken = default)
-    {
-        var (from, to) = GetTodayAndTomorrow();
-
-        if (!await IsCoveredByImportsAsync(location.Id, from, to, cancellationToken))
-        {
-            return await GetTidesAsync(location.Latitude, location.Longitude, cancellationToken);
-        }
-
-        return CreateSnapshot(await GetStoredTidesAsync(location.Id, from, to, cancellationToken));
-    }
-
-    private (DateTimeOffset From, DateTimeOffset To) GetTodayAndTomorrow()
-    {
-        var from = new DateTimeOffset(timeProvider.GetUtcNow().Date, TimeSpan.Zero);
-
-        return (from, from.AddDays(2));
     }
 
     private async Task<bool> IsCoveredByImportsAsync(
