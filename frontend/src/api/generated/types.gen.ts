@@ -15,6 +15,19 @@ export type CreateLocationRequest = {
   longitude: null | number;
 };
 
+export type EstimatedWaterLevelResponse = {
+  locationId: number;
+  timeZone: string;
+  unit: string;
+  reference: string;
+  time: string;
+  levelCm: number;
+  stationCode: string;
+  stationName: string;
+  distanceKm: number;
+  weatherEffectCm: number;
+};
+
 export type HttpValidationProblemDetails = {
   type?: null | string;
   title?: null | string;
@@ -224,6 +237,39 @@ export type GetWaterLevelResponses = {
 };
 
 export type GetWaterLevelResponse = GetWaterLevelResponses[keyof GetWaterLevelResponses];
+
+export type GetLocationWaterLevelData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/v1/locations/{id}/water-level";
+};
+
+export type GetLocationWaterLevelErrors = {
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type GetLocationWaterLevelError =
+  GetLocationWaterLevelErrors[keyof GetLocationWaterLevelErrors];
+
+export type GetLocationWaterLevelResponses = {
+  /**
+   * OK
+   */
+  200: EstimatedWaterLevelResponse;
+};
+
+export type GetLocationWaterLevelResponse =
+  GetLocationWaterLevelResponses[keyof GetLocationWaterLevelResponses];
 
 export type GetLocationsData = {
   body?: never;
