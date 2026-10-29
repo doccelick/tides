@@ -68,6 +68,20 @@ describe("useTides", () => {
     expect(result.current.later).toBe("idle");
   });
 
+  it("requests the same days once when asked again before the loading status renders", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(tidesResponse([today]))
+      .mockResolvedValueOnce(tidesResponse([lastWeek]));
+    const result = await renderLoaded(fetch);
+    const { loadEarlier } = result.current;
+
+    await act(() => Promise.all([loadEarlier(), loadEarlier()]));
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.current.state).toMatchObject({ tides: [lastWeek, today] });
+  });
+
   it("ends an edge when the station has no tide data past it", async () => {
     const fetch = vi
       .fn()

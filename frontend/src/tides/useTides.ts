@@ -25,6 +25,9 @@ export function useTides(code: string) {
   const [earlier, setEarlier] = useState<EdgeStatus>("idle");
   const [later, setLater] = useState<EdgeStatus>("idle");
   const signal = useRef<AbortSignal | undefined>(undefined);
+  // Set when a request starts, so a second call is blocked before the "loading" status renders.
+  // The status check blocks calls after the request ends and before the new tides render.
+  const inFlight = useRef({ earlier: false, later: false });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,9 +58,16 @@ export function useTides(code: string) {
   }, [code]);
 
   async function loadEarlier() {
-    if (state.status !== "loaded" || earlier === "loading" || earlier === "end") return;
+    if (
+      state.status !== "loaded" ||
+      inFlight.current.earlier ||
+      earlier === "loading" ||
+      earlier === "end"
+    )
+      return;
 
     const from = addDays(state.from, -moreDays);
+    inFlight.current.earlier = true;
     setEarlier("loading");
 
     try {
@@ -79,13 +89,22 @@ export function useTides(code: string) {
         return;
       }
       setEarlier("failed");
+    } finally {
+      inFlight.current.earlier = false;
     }
   }
 
   async function loadLater() {
-    if (state.status !== "loaded" || later === "loading" || later === "end") return;
+    if (
+      state.status !== "loaded" ||
+      inFlight.current.later ||
+      later === "loading" ||
+      later === "end"
+    )
+      return;
 
     const from = state.end;
+    inFlight.current.later = true;
     setLater("loading");
 
     try {
@@ -107,6 +126,8 @@ export function useTides(code: string) {
         return;
       }
       setLater("failed");
+    } finally {
+      inFlight.current.later = false;
     }
   }
 
