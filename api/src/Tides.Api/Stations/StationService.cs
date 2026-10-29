@@ -33,6 +33,21 @@ public sealed class StationService(HybridCache cache, KartverketClient kartverke
             s => string.Equals(s.Code, code, StringComparison.OrdinalIgnoreCase));
     }
 
+    public async ValueTask<NearbyStation?> GetNearestStationAsync(
+        double latitude,
+        double longitude,
+        double maxDistanceKm,
+        CancellationToken cancellationToken = default)
+    {
+        var snapshot = await GetStationsAsync(cancellationToken);
+
+        var nearest = snapshot.Response.Stations
+            .Select(s => new NearbyStation(s, GeoDistance.GetKilometers(latitude, longitude, s.Latitude, s.Longitude)))
+            .MinBy(s => s.DistanceKm);
+
+        return nearest is not null && nearest.DistanceKm <= maxDistanceKm ? nearest : null;
+    }
+
     private static string ComputeETag(StationsResponse response)
     {
         var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));
