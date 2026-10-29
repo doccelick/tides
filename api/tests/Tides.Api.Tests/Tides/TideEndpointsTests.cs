@@ -47,7 +47,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
         }));
 
     [Fact]
-    public async Task GetTides_KnownStation_ReturnsTidesWithCacheHeaders()
+    public async Task GetStationTides_KnownStation_ReturnsTidesWithCacheHeaders()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -66,7 +66,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTides_UnknownStation_ReturnsNotFoundProblem()
+    public async Task GetStationTides_UnknownStation_ReturnsNotFoundProblem()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -81,7 +81,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTides_NoData_ReturnsNotFoundProblem()
+    public async Task GetStationTides_NoData_ReturnsNotFoundProblem()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -96,7 +96,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTides_CalledTwiceSameDay_FetchesFromKartverketOnce()
+    public async Task GetStationTides_CalledTwiceSameDay_FetchesFromKartverketOnce()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -111,7 +111,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTides_CalledOnNextDay_FetchesFromKartverketAgain()
+    public async Task GetStationTides_CalledOnNextDay_FetchesFromKartverketAgain()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -127,7 +127,7 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTides_MatchingIfNoneMatch_ReturnsNotModified()
+    public async Task GetStationTides_MatchingIfNoneMatch_ReturnsNotModified()
     {
         var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
         var cancellationToken = TestContext.Current.CancellationToken;

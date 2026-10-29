@@ -25,6 +25,14 @@ public sealed class StationService(HybridCache cache, KartverketClient kartverke
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
+    public async ValueTask<StationResponse?> GetStationAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await GetStationsAsync(cancellationToken);
+
+        return snapshot.Response.Stations.FirstOrDefault(
+            s => string.Equals(s.Code, code, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string ComputeETag(StationsResponse response)
     {
         var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));

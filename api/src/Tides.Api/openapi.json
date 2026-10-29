@@ -45,7 +45,7 @@
           "Tides"
         ],
         "summary": "Returns high and low tides for today and tomorrow (UTC) for a specified station.",
-        "operationId": "GetTides",
+        "operationId": "GetStationTides",
         "parameters": [
           {
             "name": "code",
@@ -53,6 +53,62 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TidesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/locations/{id}/tides": {
+      "get": {
+        "tags": [
+          "Tides"
+        ],
+        "summary": "Returns high and low tides for today and tomorrow (UTC) for a specified location.",
+        "operationId": "GetLocationTides",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -696,7 +752,6 @@
       },
       "TidesResponse": {
         "required": [
-          "stationCode",
           "timeZone",
           "unit",
           "reference",
@@ -704,9 +759,6 @@
         ],
         "type": "object",
         "properties": {
-          "stationCode": {
-            "type": "string"
-          },
           "timeZone": {
             "type": "string"
           },
