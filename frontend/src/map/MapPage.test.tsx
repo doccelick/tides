@@ -29,7 +29,6 @@ const stations: StationResponse[] = [
 ];
 
 const tides: TidesResponse = {
-  stationCode: "BGO",
   timeZone: "UTC",
   unit: "cm",
   reference: "CD",

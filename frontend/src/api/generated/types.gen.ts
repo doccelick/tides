@@ -76,7 +76,6 @@ export type TideResponse = {
 };
 
 export type TidesResponse = {
-  stationCode: string;
   timeZone: string;
   unit: string;
   reference: string;
@@ -119,7 +118,7 @@ export type GetStationsResponses = {
 
 export type GetStationsResponse = GetStationsResponses[keyof GetStationsResponses];
 
-export type GetTidesData = {
+export type GetStationTidesData = {
   body?: never;
   path: {
     code: string;
@@ -128,7 +127,7 @@ export type GetTidesData = {
   url: "/v1/stations/{code}/tides";
 };
 
-export type GetTidesErrors = {
+export type GetStationTidesErrors = {
   /**
    * Not Found
    */
@@ -139,16 +138,47 @@ export type GetTidesErrors = {
   502: ProblemDetails;
 };
 
-export type GetTidesError = GetTidesErrors[keyof GetTidesErrors];
+export type GetStationTidesError = GetStationTidesErrors[keyof GetStationTidesErrors];
 
-export type GetTidesResponses = {
+export type GetStationTidesResponses = {
   /**
    * OK
    */
   200: TidesResponse;
 };
 
-export type GetTidesResponse = GetTidesResponses[keyof GetTidesResponses];
+export type GetStationTidesResponse = GetStationTidesResponses[keyof GetStationTidesResponses];
+
+export type GetLocationTidesData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: never;
+  url: "/v1/locations/{id}/tides";
+};
+
+export type GetLocationTidesErrors = {
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+  /**
+   * Bad Gateway
+   */
+  502: ProblemDetails;
+};
+
+export type GetLocationTidesError = GetLocationTidesErrors[keyof GetLocationTidesErrors];
+
+export type GetLocationTidesResponses = {
+  /**
+   * OK
+   */
+  200: TidesResponse;
+};
+
+export type GetLocationTidesResponse = GetLocationTidesResponses[keyof GetLocationTidesResponses];
 
 export type GetWaterLevelData = {
   body?: never;

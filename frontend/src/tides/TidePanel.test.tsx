@@ -4,7 +4,6 @@ import type { TidesResponse } from "@/api/generated";
 import { TidePanel } from "./TidePanel";
 
 const tides: TidesResponse = {
-  stationCode: "BGO",
   timeZone: "UTC",
   unit: "cm",
   reference: "CD",
