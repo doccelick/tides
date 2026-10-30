@@ -429,7 +429,7 @@
         "tags": [
           "Imports"
         ],
-        "summary": "Creates an import.",
+        "summary": "Imports the parts of a range that are not imported yet.",
         "operationId": "CreateImport",
         "parameters": [
           {
@@ -459,7 +459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImportResponse"
+                  "$ref": "#/components/schemas/ImportsResponse"
                 }
               }
             }

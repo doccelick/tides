@@ -10,7 +10,7 @@ public static class ImportEndpoints
         routes.MapPost("/locations/{locationId:int:min(1)}/imports", CreateImportAsync)
             .WithName("CreateImport")
             .WithTags("Imports")
-            .WithSummary("Creates an import.")
+            .WithSummary("Imports the parts of a range that are not imported yet.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status502BadGateway)
@@ -30,7 +30,7 @@ public static class ImportEndpoints
         return routes;
     }
 
-    private static async Task<Results<Created<ImportResponse>, ProblemHttpResult>> CreateImportAsync(
+    private static async Task<Results<Created<ImportsResponse>, ProblemHttpResult>> CreateImportAsync(
         int locationId,
         CreateImportRequest request,
         ImportService importService,
@@ -44,22 +44,18 @@ public static class ImportEndpoints
             return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: "Location not found.");
         }
 
-        var import = await importService.ImportAsync(location, request.From!.Value, request.To!.Value, cancellationToken);
+        var imports = await importService.ImportAsync(location, request.From!.Value, request.To!.Value, cancellationToken);
 
-        if (import == null)
+        if (imports.Count == 0)
         {
-            return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict, title: "Range overlaps existing import.");
+            return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict, title: "Range already imported.");
         }
 
-        var importResponse = new ImportResponse(
-            import.Id,
-            import.LocationId,
-            import.From,
-            import.To,
-            import.ImportedAt,
-            import.Entries.Count);
+        var importsResponse = new ImportsResponse([
+            .. imports.Select(i => new ImportResponse(i.Id, i.LocationId, i.From, i.To, i.ImportedAt, i.Entries.Count))
+        ]);
 
-        return TypedResults.Created((string?)null, importResponse);
+        return TypedResults.Created((string?)null, importsResponse);
     }
 
     private static async Task<Results<Ok<ImportsResponse>, ProblemHttpResult>> GetImportsAsync(

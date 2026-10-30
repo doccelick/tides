@@ -39,16 +39,45 @@ public class ImportEndpointsTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.Created, importResponse.StatusCode);
 
-        var response = await importResponse.Content.ReadFromJsonAsync<ImportResponse>(cancellationToken);
+        var response = await importResponse.Content.ReadFromJsonAsync<ImportsResponse>(cancellationToken);
         Assert.NotNull(response);
-        Assert.Equal(location.Id, response.LocationId);
-        Assert.Equal(From, response.From);
-        Assert.Equal(To, response.To);
-        Assert.Equal(3, response.EntryCount);
+        var import = Assert.Single(response.Imports);
+        Assert.Equal(location.Id, import.LocationId);
+        Assert.Equal(From, import.From);
+        Assert.Equal(To, import.To);
+        Assert.Equal(3, import.EntryCount);
     }
 
     [Fact]
-    public async Task CreateImport_OverlappingRange_ReturnsConflict()
+    public async Task CreateImport_PartlyCoveredRange_ReturnsCreatedGap()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+
+        await _client.PostAsJsonAsync(
+            $"/v1/locations/{location.Id}/imports",
+            new CreateImportRequest(From, From.AddMinutes(10)),
+            cancellationToken
+        );
+
+        var importResponse = await _client.PostAsJsonAsync(
+            $"/v1/locations/{location.Id}/imports",
+            new CreateImportRequest(From, To),
+            cancellationToken
+        );
+
+        Assert.Equal(HttpStatusCode.Created, importResponse.StatusCode);
+
+        var response = await importResponse.Content.ReadFromJsonAsync<ImportsResponse>(cancellationToken);
+        Assert.NotNull(response);
+        var import = Assert.Single(response.Imports);
+        Assert.Equal(From.AddMinutes(10), import.From);
+        Assert.Equal(To, import.To);
+        Assert.Equal(1, import.EntryCount);
+    }
+
+    [Fact]
+    public async Task CreateImport_CoveredRange_ReturnsConflict()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var location = await _factory.AddLocationAsync(cancellationToken);
@@ -61,7 +90,7 @@ public class ImportEndpointsTests : IAsyncDisposable
 
         var second = await _client.PostAsJsonAsync(
             $"/v1/locations/{location.Id}/imports",
-            new CreateImportRequest(From.AddMinutes(10), To.AddMinutes(10)),
+            new CreateImportRequest(From.AddMinutes(5), To),
             cancellationToken
         );
 
@@ -151,13 +180,12 @@ public class ImportEndpointsTests : IAsyncDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         var location = await _factory.AddLocationAsync(cancellationToken);
 
-        Import? import;
+        Import import;
 
         await using (var scope = _factory.Services.CreateAsyncScope())
         {
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-            import = await service.ImportAsync(location, From, To, cancellationToken);
-            Assert.NotNull(import);
+            import = Assert.Single(await service.ImportAsync(location, From, To, cancellationToken));
         }
 
         var deleteResponse = await _client.DeleteAsync(

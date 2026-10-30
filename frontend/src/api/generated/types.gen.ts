@@ -406,7 +406,7 @@ export type CreateImportResponses = {
   /**
    * Created
    */
-  201: ImportResponse;
+  201: ImportsResponse;
 };
 
 export type CreateImportResponse = CreateImportResponses[keyof CreateImportResponses];

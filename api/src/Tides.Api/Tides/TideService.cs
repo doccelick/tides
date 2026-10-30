@@ -84,25 +84,10 @@ public sealed class TideService(
         var imports = await database.Imports
             .AsNoTracking()
             .Where(i => i.LocationId == locationId && i.From < to && from < i.To)
-            .OrderBy(i => i.From)
             .Select(i => new { i.From, i.To })
             .ToListAsync(cancellationToken);
 
-        var coveredUntil = from;
-
-        // Imports for a location never overlap, so the range is covered only if
-        // each import starts where the previous one ended.
-        foreach (var import in imports)
-        {
-            if (import.From > coveredUntil)
-            {
-                return false;
-            }
-
-            coveredUntil = import.To;
-        }
-
-        return coveredUntil >= to;
+        return ImportGaps.Find(from, to, imports.Select(i => (i.From, i.To))).Count == 0;
     }
 
     private async Task<IReadOnlyList<TideResponse>> GetStoredTidesAsync(
