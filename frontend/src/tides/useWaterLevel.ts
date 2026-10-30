@@ -7,7 +7,7 @@ type WaterLevelState =
   | { status: "no-data" }
   | { status: "failed" };
 
-export function useWaterLevel(code: string) {
+export function useWaterLevel(path: string) {
   const [state, setState] = useState<WaterLevelState>({ status: "loading" });
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function useWaterLevel(code: string) {
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`/v1/stations/${code}/water-level`, {
+        const response = await fetch(`${path}/water-level`, {
           signal: controller.signal,
         });
 
@@ -41,7 +41,7 @@ export function useWaterLevel(code: string) {
     fetchData();
 
     return () => controller.abort();
-  }, [code]);
+  }, [path]);
 
   return state;
 }

@@ -3,11 +3,11 @@ import { formatTideLevel, formatTideTime } from "./format";
 import { useWaterLevel } from "./useWaterLevel";
 
 interface CurrentLevelProps {
-  code: string;
+  path: string;
 }
 
-export function CurrentLevel({ code }: CurrentLevelProps) {
-  const state = useWaterLevel(code);
+export function CurrentLevel({ path }: CurrentLevelProps) {
+  const state = useWaterLevel(path);
 
   if (state.status === "loading") return <Skeleton className="h-5 w-40" />;
   if (state.status === "no-data") return null;

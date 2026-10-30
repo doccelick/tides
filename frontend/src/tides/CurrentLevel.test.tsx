@@ -15,7 +15,7 @@ const waterLevel: WaterLevelResponse = {
 describe("CurrentLevel", () => {
   it("shows the level and when it was measured", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(waterLevel)));
-    render(<CurrentLevel code="BOO" />);
+    render(<CurrentLevel path="/v1/stations/BOO" />);
 
     expect(await screen.findByText("208 cm")).toBeInTheDocument();
     expect(screen.getByText(/measured 22:10/)).toBeInTheDocument();
@@ -23,14 +23,14 @@ describe("CurrentLevel", () => {
 
   it("shows nothing when the station has no water level", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
-    const { container } = render(<CurrentLevel code="BOO" />);
+    const { container } = render(<CurrentLevel path="/v1/stations/BOO" />);
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
   it("shows a notice when the water level fails to load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 502 })));
-    render(<CurrentLevel code="BOO" />);
+    render(<CurrentLevel path="/v1/stations/BOO" />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load water level");
   });

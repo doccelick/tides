@@ -10,7 +10,7 @@ type TidesState =
   | { status: "no-data" }
   | { status: "failed" };
 
-// "end" means the station has no tide data past that edge.
+// "end" means there is no tide data past that edge.
 export type EdgeStatus = "idle" | "loading" | "failed" | "end";
 
 const firstDays = 2;
@@ -20,7 +20,7 @@ function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-export function useTides(code: string) {
+export function useTides(path: string) {
   const [state, setState] = useState<TidesState>({ status: "loading" });
   const [earlier, setEarlier] = useState<EdgeStatus>("idle");
   const [later, setLater] = useState<EdgeStatus>("idle");
@@ -36,7 +36,7 @@ export function useTides(code: string) {
 
     const fetchData = async () => {
       try {
-        const tides = await fetchTides(code, from, firstDays, controller.signal);
+        const tides = await fetchTides(path, from, firstDays, controller.signal);
 
         if (tides === null) {
           setState({ status: "no-data" });
@@ -55,7 +55,7 @@ export function useTides(code: string) {
     fetchData();
 
     return () => controller.abort();
-  }, [code]);
+  }, [path]);
 
   async function loadEarlier() {
     if (
@@ -71,7 +71,7 @@ export function useTides(code: string) {
     setEarlier("loading");
 
     try {
-      const tides = await fetchTides(code, from, moreDays, signal.current);
+      const tides = await fetchTides(path, from, moreDays, signal.current);
 
       if (tides === null) {
         setEarlier("end");
@@ -108,7 +108,7 @@ export function useTides(code: string) {
     setLater("loading");
 
     try {
-      const tides = await fetchTides(code, from, moreDays, signal.current);
+      const tides = await fetchTides(path, from, moreDays, signal.current);
 
       if (tides === null) {
         setLater("end");

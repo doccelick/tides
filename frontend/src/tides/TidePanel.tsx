@@ -6,7 +6,7 @@ import { EdgeTile } from "./EdgeTile";
 import { useDragScroll } from "./useDragScroll";
 
 interface TidePanelProps {
-  code: string;
+  path: string;
 }
 
 interface StripLayout {
@@ -17,8 +17,8 @@ interface StripLayout {
 const stripClassName =
   "flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 [scrollbar-width:none] cursor-grab active:cursor-grabbing";
 
-export function TidePanel({ code }: TidePanelProps) {
-  const { state, earlier, later, loadEarlier, loadLater } = useTides(code);
+export function TidePanel({ path }: TidePanelProps) {
+  const { state, earlier, later, loadEarlier, loadLater } = useTides(path);
   const [now] = useState(() => new Date());
 
   const stripRef = useRef<HTMLUListElement>(null);
@@ -63,7 +63,7 @@ export function TidePanel({ code }: TidePanelProps) {
       </ul>
     );
   }
-  if (state.status === "no-data") return <p>No tide data for this station.</p>;
+  if (state.status === "no-data") return <p>No tide data for this place.</p>;
   if (state.status === "failed") return <p role="alert">Couldn't load tides</p>;
 
   return (

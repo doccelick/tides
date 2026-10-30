@@ -24,8 +24,8 @@ export function StationCard({ station, onClose }: StationCardProps) {
           <XIcon />
         </Button>
       </div>
-      <CurrentLevel code={station.code} />
-      <TidePanel key={station.code} code={station.code} />
+      <CurrentLevel path={`/v1/stations/${station.code}`} />
+      <TidePanel key={station.code} path={`/v1/stations/${station.code}`} />
     </section>
   );
 }

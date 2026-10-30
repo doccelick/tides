@@ -14,7 +14,7 @@ const nextWeek: TideResponse = { type: "Low", time: "2026-10-22T09:45:00+00:00",
 
 async function renderLoaded(fetch: ReturnType<typeof vi.fn>) {
   vi.stubGlobal("fetch", fetch);
-  const { result } = renderHook(() => useTides("BGO"));
+  const { result } = renderHook(() => useTides("/v1/stations/BGO"));
   await waitFor(() => expect(result.current.state.status).toBe("loaded"));
   return result;
 }
