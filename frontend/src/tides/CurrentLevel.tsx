@@ -13,12 +13,15 @@ export function CurrentLevel({ path }: CurrentLevelProps) {
   if (state.status === "no-data") return null;
   if (state.status === "failed") return <p role="alert">Couldn't load water level</p>;
 
+  const { waterLevel } = state;
+  const time = formatTideTime(waterLevel.time);
+
   return (
     <p>
-      <span className="font-semibold tabular-nums">
-        {formatTideLevel(state.waterLevel.levelCm)}
-      </span>{" "}
-      (measured {formatTideTime(state.waterLevel.time)})
+      <span className="font-semibold tabular-nums">{formatTideLevel(waterLevel.levelCm)}</span>{" "}
+      {"stationName" in waterLevel
+        ? `(estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away, ${time})`
+        : `(measured ${time})`}
     </p>
   );
 }
