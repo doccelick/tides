@@ -14,6 +14,9 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | `GET /v1/stations/{code}/water-level` | The latest observed water level at a station |
 | `GET /v1/locations/{id}/tides` | High and low tides at a saved location, with the same range as for stations |
 | `GET /v1/locations/{id}/water-level` | An estimated water level at a saved location, based on the nearest station |
+| `POST /v1/locations/{id}/imports` | Imports a location's tides for a range into the database, skipping what is already imported |
+| `GET /v1/locations/{id}/imports` | A location's imports |
+| `DELETE /v1/imports/{id}` | Deletes an import and its tide data |
 
 ## Stations
 
@@ -105,6 +108,37 @@ The API returns a level only if it was at most 30 minutes old when the API fetch
 
 The API keeps a location's estimate in memory for 5 minutes, like a station's level.
 
+## Imports
+
+An import stores a location's tides for a range of time in the database, so `GET /v1/locations/{id}/tides` can read them without calling Kartverket. It holds the high and low tides and the predicted level every 10 minutes.
+
+`POST /v1/locations/{id}/imports` imports the range from `from` up to `to`, where `from` is included and `to` is not. The range can be in the past or the future and at most 31 days long.
+
+```json
+{ "from": "2026-11-01T00:00:00+00:00", "to": "2026-11-08T00:00:00+00:00" }
+```
+
+The API imports only the parts of the range that no earlier import for the location covers, and each part becomes a separate import. For example, after importing 1 to 8 November, a request for 1 November to 2 December imports 8 November to 2 December. The response is `201 Created` with the new imports.
+
+```json
+{
+  "imports": [
+    {
+      "id": 12,
+      "locationId": 7,
+      "from": "2026-11-08T00:00:00+00:00",
+      "to": "2026-12-02T00:00:00+00:00",
+      "importedAt": "2026-10-30T18:02:11+00:00",
+      "entryCount": 3549
+    }
+  ]
+}
+```
+
+`entryCount` is the number of stored high tides, low tides and predicted levels. When imports already cover the whole range, the API returns `409 Conflict` and calls nothing at Kartverket.
+
+`GET /v1/locations/{id}/imports` returns all imports for a location in the same shape, ordered by `from`. `DELETE /v1/imports/{id}` deletes an import with its tide data and returns `204 No Content`.
+
 ## Caching
 
 `GET /v1/stations` and both tide endpoints respond with `Cache-Control: public, max-age=3600` and an `ETag`. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
@@ -121,7 +155,10 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |
 | `404 Not Found` | The location id is unknown. The title is `Location not found.` |
 | `404 Not Found` | Kartverket has no tide data for the location. The title is `No tide data for this location.` |
+| `400 Bad Request` | An import's `from` or `to` is missing, `to` is not after `from`, or the range is longer than 31 days. The field is listed under `errors` |
 | `404 Not Found` | No station is within 50 km of the location, or the nearest one has no water level from the last 30 minutes. The title is `No water level estimate for this location.` |
+| `404 Not Found` | The import id is unknown |
+| `409 Conflict` | Imports already cover the whole range. The title is `Range already imported.` |
 | `502 Bad Gateway` | Kartverket's Tide API fails, times out or returns a response the API cannot read |
 
 ## Cross-origin requests
