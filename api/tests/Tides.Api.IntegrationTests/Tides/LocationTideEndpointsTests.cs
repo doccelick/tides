@@ -30,9 +30,9 @@ public class LocationTideEndpointsTests : IAsyncDisposable
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-        var import = await service.ImportAsync(location, from, to, cancellationToken);
+        var imports = await service.ImportAsync(location, from, to, cancellationToken);
 
-        Assert.NotNull(import);
+        Assert.NotEmpty(imports);
     }
 
     [Fact]

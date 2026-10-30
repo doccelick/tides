@@ -168,7 +168,7 @@ public class LocationEndpointsTests : IAsyncDisposable
         var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
         var to = from.AddMinutes(20);
 
-        Import? import;
+        Import import;
 
         await using (var scope = _factory.Services.CreateAsyncScope())
         {
@@ -177,8 +177,7 @@ public class LocationEndpointsTests : IAsyncDisposable
             await context.SaveChangesAsync(cancellationToken);
 
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-            import = await service.ImportAsync(location, from, to, cancellationToken);
-            Assert.NotNull(import);
+            import = Assert.Single(await service.ImportAsync(location, from, to, cancellationToken));
         }
 
         var deleteResponse = await _client.DeleteAsync(

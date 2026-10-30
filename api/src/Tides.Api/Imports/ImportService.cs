@@ -8,41 +8,80 @@ namespace Tides.Api.Imports;
 
 public sealed class ImportService(TidesDbContext database, KartverketClient kartverket, TimeProvider timeProvider)
 {
-    public async Task<Import?> ImportAsync(
+    // Creates one import for each part of the range that no stored import covers.
+    // Returns an empty list when the whole range is already imported.
+    public async Task<IReadOnlyList<Import>> ImportAsync(
         Location location,
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default)
     {
-        var overlaps = await database.Imports.AnyAsync(
-            i => i.LocationId == location.Id && i.From < to && from < i.To,
-            cancellationToken);
+        var stored = await database.Imports
+            .AsNoTracking()
+            .Where(i => i.LocationId == location.Id && i.From < to && from < i.To)
+            .Select(i => new { i.From, i.To })
+            .ToListAsync(cancellationToken);
 
-        if (overlaps)
+        var gaps = ImportGaps.Find(from, to, stored.Select(i => (i.From, i.To)));
+
+        if (gaps.Count == 0)
         {
-            return null;
+            return [];
         }
+
+        // One fetch spans all gaps, and each import keeps only the entries in its own gap.
+        var fetchFrom = gaps[0].From;
+        var fetchTo = gaps[^1].To;
 
         var tides = await kartverket.GetTidesAsync(
             location.Latitude,
             location.Longitude,
-            from,
-            to,
+            fetchFrom,
+            fetchTo,
             cancellationToken);
 
         var predictions = await kartverket.GetPredictionsAsync(
             location.Latitude,
             location.Longitude,
-            from,
-            to,
+            fetchFrom,
+            fetchTo,
             cancellationToken);
 
+        var importedAt = timeProvider.GetUtcNow();
+        var imports = gaps
+            .Select(gap => CreateImport(location, gap.From, gap.To, importedAt, tides, predictions))
+            .ToList();
+
+        database.Imports.AddRange(imports);
+
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+        }
+        // A concurrent import can pass the gap check above. SQL Server error 2601 is the
+        // unique index on entries rejecting the duplicate rows.
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
+        {
+            return [];
+        }
+
+        return imports;
+    }
+
+    private static Import CreateImport(
+        Location location,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        DateTimeOffset importedAt,
+        IReadOnlyList<Tide> tides,
+        IReadOnlyList<Prediction> predictions)
+    {
         var import = new Import
         {
             LocationId = location.Id,
             From = from,
             To = to,
-            ImportedAt = timeProvider.GetUtcNow()
+            ImportedAt = importedAt
         };
 
         foreach (var tide in tides.Where(t => import.Covers(t.Time)))
@@ -65,19 +104,6 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
                 Type = TideEntryType.Prediction,
                 LevelCm = prediction.LevelCm
             });
-        }
-
-        database.Imports.Add(import);
-
-        try
-        {
-            await database.SaveChangesAsync(cancellationToken);
-        }
-        // A concurrent import can pass the overlap check above. SQL Server error 2601 is the
-        // unique index on entries rejecting the duplicate rows.
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
-        {
-            return null;
         }
 
         return import;

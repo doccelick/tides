@@ -19,21 +19,22 @@ public class ImportServiceTests(SqlServerFixture database)
         var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
         var to = from.AddMinutes(20);
 
-        Import? import;
+        Import import;
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             context.Locations.Add(location);
             await context.SaveChangesAsync(cancellationToken);
-            import = await scope.ServiceProvider.GetRequiredService<ImportService>().ImportAsync(location, from, to, cancellationToken);
+            var imports = await scope.ServiceProvider.GetRequiredService<ImportService>().ImportAsync(location, from, to, cancellationToken);
+            import = Assert.Single(imports);
         }
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
             var entries = await context.TideEntries
-                .Where(e => e.ImportId == import!.Id)
+                .Where(e => e.ImportId == import.Id)
                 .OrderBy(e => e.Time)
                 .ToListAsync(cancellationToken);
 
@@ -45,7 +46,7 @@ public class ImportServiceTests(SqlServerFixture database)
     }
 
     [Fact]
-    public async Task ImportAsync_OverlappingRange_ReturnsNullWithoutFetching()
+    public async Task ImportAsync_CoveredRange_ReturnsEmptyWithoutFetching()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
@@ -63,15 +64,73 @@ public class ImportServiceTests(SqlServerFixture database)
 
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
             await service.ImportAsync(location, from, to, cancellationToken);
-            var second = await service.ImportAsync(location, from.AddMinutes(10), to.AddMinutes(10), cancellationToken);
+            var second = await service.ImportAsync(location, from.AddMinutes(5), to, cancellationToken);
 
-            Assert.Null(second);
+            Assert.Empty(second);
             Assert.Equal(2, handler.RequestCount);
         }
     }
 
     [Fact]
-    public async Task ImportAsync_EntriesAlreadyStored_ReturnsNull()
+    public async Task ImportAsync_PartlyCoveredRange_ImportsOnlyTheGap()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+            context.Locations.Add(location);
+            await context.SaveChangesAsync(cancellationToken);
+
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            await service.ImportAsync(location, from, from.AddMinutes(10), cancellationToken);
+            var second = await service.ImportAsync(location, from, to, cancellationToken);
+
+            var import = Assert.Single(second);
+            Assert.Equal((from.AddMinutes(10), to), (import.From, import.To));
+            var entry = Assert.Single(import.Entries);
+            Assert.Equal((TideEntryType.Prediction, from.AddMinutes(10)), (entry.Type, entry.Time));
+        }
+    }
+
+    [Fact]
+    public async Task ImportAsync_GapsOnBothSides_CreatesImportPerGapFromOneFetch()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var location = new Location { Name = "Bodø", Latitude = 67.29, Longitude = 14.40 };
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+            context.Locations.Add(location);
+            await context.SaveChangesAsync(cancellationToken);
+
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            await service.ImportAsync(location, from.AddMinutes(5), from.AddMinutes(10), cancellationToken);
+            var second = await service.ImportAsync(location, from, to, cancellationToken);
+
+            Assert.Equal(2, second.Count);
+            Assert.Equal((from, from.AddMinutes(5)), (second[0].From, second[0].To));
+            Assert.Equal((from.AddMinutes(10), to), (second[1].From, second[1].To));
+            Assert.Equal(from, Assert.Single(second[0].Entries).Time);
+            Assert.Equal(from.AddMinutes(10), Assert.Single(second[1].Entries).Time);
+            Assert.Equal(4, handler.RequestCount);
+        }
+    }
+
+    [Fact]
+    public async Task ImportAsync_EntriesAlreadyStored_ReturnsEmpty()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
@@ -97,9 +156,9 @@ public class ImportServiceTests(SqlServerFixture database)
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-            var import = await service.ImportAsync(location, from, to, cancellationToken);
+            var imports = await service.ImportAsync(location, from, to, cancellationToken);
 
-            Assert.Null(import);
+            Assert.Empty(imports);
         }
     }
 
@@ -124,8 +183,8 @@ public class ImportServiceTests(SqlServerFixture database)
             await service.ImportAsync(location, from, to, cancellationToken);
             var second = await service.ImportAsync(location, to, to.AddMinutes(20), cancellationToken);
 
-            Assert.NotNull(second);
-            var entry = Assert.Single(second.Entries);
+            var import = Assert.Single(second);
+            var entry = Assert.Single(import.Entries);
             Assert.Equal((TideEntryType.Prediction, to), (entry.Type, entry.Time));
         }
     }
@@ -141,7 +200,7 @@ public class ImportServiceTests(SqlServerFixture database)
         var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
         var to = from.AddMinutes(20);
 
-        Import? import;
+        Import import;
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
@@ -150,19 +209,19 @@ public class ImportServiceTests(SqlServerFixture database)
             await context.SaveChangesAsync(cancellationToken);
 
             var service = scope.ServiceProvider.GetRequiredService<ImportService>();
-            import = await service.ImportAsync(location, from, to, cancellationToken);
+            import = Assert.Single(await service.ImportAsync(location, from, to, cancellationToken));
         }
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            await context.Imports.Where(i => i.Id == import!.Id).ExecuteDeleteAsync(cancellationToken);
+            await context.Imports.Where(i => i.Id == import.Id).ExecuteDeleteAsync(cancellationToken);
         }
 
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
-            var hasEntries = await context.TideEntries.AnyAsync(e => e.ImportId == import!.Id, cancellationToken);
+            var hasEntries = await context.TideEntries.AnyAsync(e => e.ImportId == import.Id, cancellationToken);
 
             Assert.False(hasEntries);
         }
