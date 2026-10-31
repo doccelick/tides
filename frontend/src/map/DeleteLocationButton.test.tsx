@@ -3,6 +3,8 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DeleteLocationButton } from "./DeleteLocationButton";
 
+vi.mock("@/auth/getAdminToken", () => ({ getAdminToken: () => Promise.resolve("token-1") }));
+
 async function confirmDelete() {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Delete location" }));
@@ -18,10 +20,10 @@ describe("DeleteLocationButton", () => {
 
     await confirmDelete();
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/v1/locations/3",
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(fetch).toHaveBeenCalledWith("/v1/locations/3", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token-1" },
+    });
     expect(onDeleted).toHaveBeenCalledWith(3);
   });
 

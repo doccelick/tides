@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImportResponse } from "@/api/generated";
 import { LocationImports } from "./LocationImports";
 
+vi.mock("@/auth/getAdminToken", () => ({ getAdminToken: () => Promise.resolve("token-1") }));
+
 const november: ImportResponse = {
   id: 12,
   locationId: 3,
@@ -71,10 +73,10 @@ describe("LocationImports", () => {
     );
 
     expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      "/v1/imports/12",
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(fetch).toHaveBeenCalledWith("/v1/imports/12", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token-1" },
+    });
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
