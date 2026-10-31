@@ -126,7 +126,9 @@ npm run dev
 
 The frontend runs on `http://localhost:5173`. The page shows a map with Kartverket's tide stations as round markers and saved locations as square markers, and a badge that shows whether the API answers on `/health`. Tapping a marker opens a card with the water level and the tides, which you can swipe or drag through. A station shows its latest measured level, and a location shows a level estimated from the nearest station.
 
-To add a location, hold the left mouse button or a finger still on the map for half a second and choose "Add location?". The form takes a name and a range such as "Next 31 days" or "This month", and saves the location with an import of that range. A location's card has an "Imports" section that lists its imports, imports more ranges and deletes an import, and a button that deletes the location. These changes need no sign-in.
+The "Sign in" button under the badge signs in with Microsoft Entra ID through a redirect to Microsoft's sign-in page. Only accounts assigned in the Tides SPA app registration can sign in, and the admin tools below appear only for an account with the `Admin` role. Each save or delete sends an access token for the API, and the API checks the role again. When the session has expired, the form shows "Sign in again to save changes".
+
+To add a location as an admin, hold the left mouse button or a finger still on the map for half a second and choose "Add location?". The form takes a name and a range such as "Next 31 days" or "This month", and saves the location with an import of that range. For an admin, a location's card has an "Imports" section that lists its imports, imports more ranges and deletes an import, and a button that deletes the location. Each tide tile also shows whether it came from the database or from Kartverket.
 
 The Vite dev server proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. The proxy target is `http://localhost:8080`, and `API_URL` points it elsewhere, as described in [configuration.md](configuration.md#frontend).
 

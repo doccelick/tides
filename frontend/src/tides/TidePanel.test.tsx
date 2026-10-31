@@ -1,8 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TidesResponse } from "@/api/generated";
 import { TidePanel } from "./TidePanel";
+
+const auth = vi.hoisted(() => ({ isAdmin: true }));
+
+vi.mock("@/auth/useIsAdmin", () => ({ useIsAdmin: () => auth.isAdmin }));
 
 const tides: TidesResponse = {
   timeZone: "UTC",
@@ -37,6 +41,10 @@ class VisibleIntersectionObserver {
 }
 
 describe("TidePanel", () => {
+  beforeEach(() => {
+    auth.isAdmin = true;
+  });
+
   it("shows the tides when they load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(tides)));
     render(<TidePanel path="/v1/stations/BGO" />);
@@ -107,5 +115,14 @@ describe("TidePanel", () => {
 
     expect(await screen.findByRole("img", { name: "From database" })).toBeInTheDocument();
     expect(screen.getAllByRole("img", { name: "From Kartverket" })).toHaveLength(2);
+  });
+
+  it("leaves out the source when not an admin", async () => {
+    auth.isAdmin = false;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(tides)));
+    render(<TidePanel path="/v1/locations/3" />);
+
+    expect(await screen.findByText("High")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "From Kartverket" })).not.toBeInTheDocument();
   });
 });

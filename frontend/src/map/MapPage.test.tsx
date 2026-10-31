@@ -33,6 +33,13 @@ vi.mock("react-map-gl/maplibre", () => ({
   Layer: () => null,
 }));
 
+const auth = vi.hoisted(() => ({ isAdmin: true }));
+
+vi.mock("@/auth/useIsAdmin", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/auth/useIsAdmin")>()),
+  useIsAdmin: () => auth.isAdmin,
+}));
+
 const stations: StationResponse[] = [
   { code: "BGO", name: "Bergen", latitude: 60.4, longitude: 5.3 },
   { code: "OSL", name: "Oslo", latitude: 59.9, longitude: 10.7 },
@@ -52,6 +59,7 @@ const tides: TidesResponse = {
 
 describe("MapPage", () => {
   beforeEach(() => {
+    auth.isAdmin = true;
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string) => {
@@ -126,6 +134,18 @@ describe("MapPage", () => {
     );
   });
 
+  it("leaves the imports and delete out of a location's card when not an admin", async () => {
+    auth.isAdmin = false;
+    const user = userEvent.setup();
+    render(<MapPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
+
+    expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete location" })).not.toBeInTheDocument();
+  });
+
   it("replaces an open station card with the location's card", async () => {
     const user = userEvent.setup();
     render(<MapPage />);
@@ -183,6 +203,15 @@ describe("MapPage", () => {
 
       expect(await screen.findByRole("region", { name: "Grøtøy" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Grøtøy" })).toBeInTheDocument();
+    });
+
+    it("ignores a long press when not an admin", () => {
+      auth.isAdmin = false;
+      render(<MapPage />);
+
+      longPress();
+
+      expect(screen.queryByRole("button", { name: "Add location?" })).not.toBeInTheDocument();
     });
 
     it("closes the popup on a map click", async () => {

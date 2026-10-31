@@ -24,6 +24,8 @@ The Vite dev server reads its settings from environment variables.
 | --- | --- | --- |
 | `API_URL` | `http://localhost:8080` | Where the dev server proxies `/health` and `/v1`. `compose.yml` sets it to `http://api:8080`, the API's service name inside Compose. |
 
+Sign-in settings are constants in `frontend/src/auth/authConfig.ts`, since they are the same in every environment and none of them are secrets: the Entra tenant ID, the client ID of the SPA app registration, and the API scope `api://<API client ID>/access_as_user`. MSAL redirects back to the page's own origin, so every origin the app runs on must be a redirect URI of the SPA registration.
+
 ## Compose
 
 Compose reads these variables from `.env` in the repo root.

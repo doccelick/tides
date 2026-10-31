@@ -3,6 +3,7 @@ import Map, { Layer, Source, Marker, Popup } from "react-map-gl/maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+import { useIsAdmin } from "@/auth/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { LocationImports } from "@/imports/LocationImports";
 import { DeleteLocationButton } from "./DeleteLocationButton";
@@ -36,7 +37,13 @@ export function MapPage() {
     add: addLocation,
     remove: removeLocation,
   } = useLocations();
-  const longPress = useLongPress({ onLongPress: setPressed, onClick: () => setPressed(null) });
+  const isAdmin = useIsAdmin();
+  const longPress = useLongPress({
+    onLongPress: (position) => {
+      if (isAdmin) setPressed(position);
+    },
+    onClick: () => setPressed(null),
+  });
   const [tidesVersion, setTidesVersion] = useState(0);
 
   function openTides(button: HTMLButtonElement, tides: Panel) {
@@ -172,7 +179,7 @@ export function MapPage() {
             selectedMarkerRef.current?.focus({ preventScroll: true });
           }}
         >
-          {panel.locationId !== undefined && (
+          {isAdmin && panel.locationId !== undefined && (
             <>
               <LocationImports
                 locationId={panel.locationId}

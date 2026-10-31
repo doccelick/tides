@@ -15,6 +15,30 @@ describe("sendJson", () => {
     });
   });
 
+  it("sends the token as a bearer token", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+
+    await sendJson("DELETE", "/v1/imports/12", undefined, "token-1");
+
+    expect(fetch).toHaveBeenCalledWith("/v1/imports/12", {
+      method: "DELETE",
+      headers: { Authorization: "Bearer token-1" },
+    });
+  });
+
+  it("asks to sign in again on 401 Unauthorized", async () => {
+    const problem = { status: 401, title: "Unauthorized" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(problem, { status: 401 })));
+
+    const result = await sendJson("DELETE", "/v1/imports/12");
+
+    expect(result).toEqual({
+      ok: false,
+      error: { message: "Sign in again to save changes", fieldErrors: {} },
+    });
+  });
+
   it("returns the response body on success", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ id: 3 }, { status: 201 })));
 
