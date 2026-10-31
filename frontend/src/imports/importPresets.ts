@@ -18,7 +18,7 @@ export interface UtcRange {
   to: string;
 }
 
-// The longest range the API imports in one request.
+// The API imports at most this many days in one request.
 const maxImportDays = 31;
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
