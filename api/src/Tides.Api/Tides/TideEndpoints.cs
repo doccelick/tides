@@ -57,7 +57,13 @@ public static class TideEndpoints
             days ?? DefaultDays,
             cancellationToken);
 
-        return ToResult(snapshot, context, "No tide data for this station.");
+        var cacheControl = new CacheControlHeaderValue
+        {
+            Public = true,
+            MaxAge = TimeSpan.FromHours(1),
+        };
+
+        return ToResult(snapshot, context, "No tide data for this station.", cacheControl);
     }
 
     private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
@@ -78,24 +84,24 @@ public static class TideEndpoints
 
         var snapshot = await tideService.GetTidesAsync(location, from, days ?? DefaultDays, cancellationToken);
 
-        return ToResult(snapshot, context, "No tide data for this location.");
+        // Adding or deleting an import changes the response, so clients revalidate with the ETag before reusing it.
+        var cacheControl = new CacheControlHeaderValue { NoCache = true };
+
+        return ToResult(snapshot, context, "No tide data for this location.", cacheControl);
     }
 
     private static Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult> ToResult(
         TidesSnapshot snapshot,
         HttpContext context,
-        string noDataTitle)
+        string noDataTitle,
+        CacheControlHeaderValue cacheControl)
     {
         if (snapshot.Response.Tides.Count == 0)
         {
             return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: noDataTitle);
         }
 
-        context.Response.GetTypedHeaders().CacheControl = new CacheControlHeaderValue
-        {
-            Public = true,
-            MaxAge = TimeSpan.FromHours(1),
-        };
+        context.Response.GetTypedHeaders().CacheControl = cacheControl;
         context.Response.Headers.ETag = snapshot.ETag;
 
         if (MatchesETag(context.Request, snapshot.ETag))

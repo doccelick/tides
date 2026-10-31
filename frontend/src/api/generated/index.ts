@@ -65,6 +65,7 @@ export type {
   StationResponse,
   StationsResponse,
   TideResponse,
+  TideSource,
   TidesResponse,
   TideType,
   WaterLevelResponse,

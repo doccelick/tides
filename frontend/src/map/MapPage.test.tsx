@@ -46,6 +46,7 @@ const tides: TidesResponse = {
   timeZone: "UTC",
   unit: "cm",
   reference: "CD",
+  source: "Kartverket",
   tides: [],
 };
 

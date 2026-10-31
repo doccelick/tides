@@ -50,6 +50,20 @@ public class LocationTideEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetLocationTides_KnownLocation_ReturnsNoCacheWithETag()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+
+        var response = await _client.GetAsync($"/v1/locations/{location.Id}/tides", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoCache);
+        Assert.Null(response.Headers.CacheControl?.MaxAge);
+        Assert.NotNull(response.Headers.ETag);
+    }
+
+    [Fact]
     public async Task GetLocationTides_ImportedWindow_ReturnsStoredHighsAndLows()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -60,6 +74,7 @@ public class LocationTideEndpointsTests : IAsyncDisposable
         var response = await _client.GetFromJsonAsync<TidesResponse>($"/v1/locations/{location.Id}/tides", cancellationToken);
 
         Assert.NotNull(response);
+        Assert.Equal(TideSource.Database, response.Source);
         var tide = Assert.Single(response.Tides);
         Assert.Equal(new TideResponse(TideType.High, Today.AddMinutes(5), 250.0), tide);
         Assert.Equal(requestsAfterImport, _handler.RequestCount);
@@ -74,6 +89,7 @@ public class LocationTideEndpointsTests : IAsyncDisposable
         var response = await _client.GetFromJsonAsync<TidesResponse>($"/v1/locations/{location.Id}/tides", cancellationToken);
 
         Assert.NotNull(response);
+        Assert.Equal(TideSource.Kartverket, response.Source);
         var tide = Assert.Single(response.Tides);
         Assert.Equal(new TideResponse(TideType.High, Today.AddMinutes(5), 250.0), tide);
         Assert.Equal(1, _handler.RequestCount);
@@ -90,6 +106,7 @@ public class LocationTideEndpointsTests : IAsyncDisposable
         var response = await _client.GetFromJsonAsync<TidesResponse>($"/v1/locations/{location.Id}/tides", cancellationToken);
 
         Assert.NotNull(response);
+        Assert.Equal(TideSource.Kartverket, response.Source);
         Assert.Single(response.Tides);
         Assert.Equal(requestsAfterImport + 1, _handler.RequestCount);
     }
@@ -107,6 +124,7 @@ public class LocationTideEndpointsTests : IAsyncDisposable
             cancellationToken);
 
         Assert.NotNull(response);
+        Assert.Equal(TideSource.Database, response.Source);
         var tide = Assert.Single(response.Tides);
         Assert.Equal(new TideResponse(TideType.High, Today.AddMinutes(5), 250.0), tide);
         Assert.Equal(requestsAfterImport, _handler.RequestCount);
@@ -125,6 +143,7 @@ public class LocationTideEndpointsTests : IAsyncDisposable
             cancellationToken);
 
         Assert.NotNull(response);
+        Assert.Equal(TideSource.Kartverket, response.Source);
         Assert.Single(response.Tides);
         Assert.Equal(requestsAfterImport + 1, _handler.RequestCount);
     }

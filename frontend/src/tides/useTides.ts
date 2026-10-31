@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { TideResponse } from "@/api/generated";
-import { fetchTides } from "./fetchTides";
+import { fetchTides, type SourcedTide } from "./fetchTides";
 import { addDays, toUtcDay } from "./utcDay";
 
 type TidesState =
   | { status: "loading" }
   // `from` is the first UTC day loaded and `end` the day after the last.
-  | { status: "loaded"; tides: TideResponse[]; from: string; end: string }
+  | { status: "loaded"; tides: SourcedTide[]; from: string; end: string }
   | { status: "no-data" }
   | { status: "failed" };
 

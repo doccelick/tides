@@ -88,10 +88,13 @@ export type TideResponse = {
   levelCm: number;
 };
 
+export type TideSource = "Database" | "Kartverket";
+
 export type TidesResponse = {
   timeZone: string;
   unit: string;
   reference: string;
+  source: TideSource;
   tides: Array<TideResponse>;
 };
 
