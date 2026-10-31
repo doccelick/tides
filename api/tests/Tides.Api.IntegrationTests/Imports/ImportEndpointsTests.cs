@@ -20,7 +20,7 @@ public class ImportEndpointsTests : IAsyncDisposable
     public ImportEndpointsTests(SqlServerFixture database)
     {
         _factory = new TidesApiFactory(database, _handler);
-        _client = _factory.CreateClient();
+        _client = _factory.CreateSignedInClient("Admin");
     }
 
     public ValueTask DisposeAsync() => _factory.DisposeAsync();
