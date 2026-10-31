@@ -35,7 +35,10 @@ vi.mock("react-map-gl/maplibre", () => ({
 
 const auth = vi.hoisted(() => ({ isAdmin: true }));
 
-vi.mock("@/auth/useIsAdmin", () => ({ useIsAdmin: () => auth.isAdmin }));
+vi.mock("@/auth/useIsAdmin", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/auth/useIsAdmin")>()),
+  useIsAdmin: () => auth.isAdmin,
+}));
 
 const stations: StationResponse[] = [
   { code: "BGO", name: "Bergen", latitude: 60.4, longitude: 5.3 },

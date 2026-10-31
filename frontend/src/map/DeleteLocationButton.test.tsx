@@ -18,7 +18,10 @@ describe("DeleteLocationButton", () => {
 
     await confirmDelete();
 
-    expect(fetch).toHaveBeenCalledWith("/v1/locations/3", { method: "DELETE" });
+    expect(fetch).toHaveBeenCalledWith(
+      "/v1/locations/3",
+      expect.objectContaining({ method: "DELETE" }),
+    );
     expect(onDeleted).toHaveBeenCalledWith(3);
   });
 

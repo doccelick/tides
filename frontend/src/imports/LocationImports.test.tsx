@@ -71,7 +71,10 @@ describe("LocationImports", () => {
     );
 
     expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith("/v1/imports/12", { method: "DELETE" });
+    expect(fetch).toHaveBeenCalledWith(
+      "/v1/imports/12",
+      expect.objectContaining({ method: "DELETE" }),
+    );
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
@@ -85,7 +88,10 @@ describe("LocationImports", () => {
     );
 
     expect(screen.getByText("1 Nov – 7 Nov 2026")).toBeInTheDocument();
-    expect(fetch).not.toHaveBeenCalledWith("/v1/imports/12", { method: "DELETE" });
+    expect(fetch).not.toHaveBeenCalledWith(
+      "/v1/imports/12",
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 
   it("imports the chosen range and shows which days were added", async () => {
