@@ -17,7 +17,7 @@ interface TideCardProps {
 
 export function TideCard({ name, path, tidesVersion = 0, onClose, children }: TideCardProps) {
   return (
-    <section aria-label={name} className="border-t bg-background p-4">
+    <section aria-label={name} className="max-h-[60svh] overflow-y-auto border-t bg-background p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{name}</h2>
         <Button
