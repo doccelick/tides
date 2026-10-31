@@ -1,9 +1,8 @@
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Tides.Api.Data;
+using Tides.Api.Http;
 using Tides.Api.Imports;
 using Tides.Api.Kartverket;
 using Tides.Api.Locations;
@@ -106,12 +105,6 @@ public sealed class TideService(
     {
         var response = new TidesResponse("UTC", "cm", "CD", source, tides);
 
-        return new TidesSnapshot(response, ComputeETag(response));
-    }
-
-    private static string ComputeETag(TidesResponse response)
-    {
-        var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));
-        return $"\"{Convert.ToHexString(hash)}\"";
+        return new TidesSnapshot(response, ETags.Compute(response));
     }
 }

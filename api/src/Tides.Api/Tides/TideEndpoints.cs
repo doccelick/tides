@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
+using Tides.Api.Http;
 using Tides.Api.Locations;
 using Tides.Api.Stations;
 
@@ -104,19 +105,11 @@ public static class TideEndpoints
         context.Response.GetTypedHeaders().CacheControl = cacheControl;
         context.Response.Headers.ETag = snapshot.ETag;
 
-        if (MatchesETag(context.Request, snapshot.ETag))
+        if (ETags.Matches(context.Request, snapshot.ETag))
         {
             return TypedResults.StatusCode(StatusCodes.Status304NotModified);
         }
 
         return TypedResults.Ok(snapshot.Response);
-    }
-
-    private static bool MatchesETag(HttpRequest request, string eTag)
-    {
-        var current = new EntityTagHeaderValue(eTag);
-
-        return request.GetTypedHeaders().IfNoneMatch.Any(tag =>
-            tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison: false));
     }
 }

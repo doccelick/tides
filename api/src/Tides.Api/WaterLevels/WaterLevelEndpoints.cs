@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
+using Tides.Api.Http;
 using Tides.Api.Locations;
 using Tides.Api.Stations;
 
@@ -100,19 +101,11 @@ public static class WaterLevelEndpoints
         };
         context.Response.Headers.ETag = eTag;
 
-        if (MatchesETag(context.Request, eTag))
+        if (ETags.Matches(context.Request, eTag))
         {
             return TypedResults.StatusCode(StatusCodes.Status304NotModified);
         }
 
         return TypedResults.Ok(response);
-    }
-
-    private static bool MatchesETag(HttpRequest request, string eTag)
-    {
-        var current = new EntityTagHeaderValue(eTag);
-
-        return request.GetTypedHeaders().IfNoneMatch.Any(tag =>
-            tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison: false));
     }
 }
