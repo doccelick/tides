@@ -47,6 +47,7 @@ export function SamplesPanel({ locationId }: SamplesPanelProps) {
 
 function SamplesChart({ locationId, range, interval }: SamplesChartProps) {
   const state = useSamples(locationId, range, interval);
+  const [now] = useState(() => new Date());
 
   if (state.status === "loading") return <Skeleton className="h-48 w-full" />;
   if (state.status === "no-data") {
@@ -60,5 +61,9 @@ function SamplesChart({ locationId, range, interval }: SamplesChartProps) {
     );
   }
 
-  return <TideChart samples={state.samples} />;
+  return (
+    <div className="h-48">
+      <TideChart samples={state.samples} now={now} />
+    </div>
+  );
 }
