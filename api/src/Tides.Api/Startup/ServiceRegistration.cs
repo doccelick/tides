@@ -1,5 +1,8 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using Tides.Api.Auth;
 using Tides.Api.Data;
 using Tides.Api.Imports;
 using Tides.Api.Kartverket;
@@ -54,6 +57,17 @@ public static class ServiceRegistration
         services.AddScoped<WaterLevelService>();
         services.AddScoped<ImportService>();
         services.AddScoped<LocationService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddAdminAuth(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(configuration.GetSection("AzureAd"));
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AuthPolicies.Admin, policy => policy.RequireRole("Admin"));
 
         return services;
     }
