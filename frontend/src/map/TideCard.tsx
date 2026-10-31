@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CurrentLevel } from "@/tides/CurrentLevel";
 import { TidePanel } from "@/tides/TidePanel";
@@ -7,10 +8,14 @@ interface TideCardProps {
   name: string;
   // The station or location, for example `/v1/stations/BGO` or `/v1/locations/3`.
   path: string;
+  // Changes when the stored tides change, so the tide panel loads them again.
+  tidesVersion?: number;
   onClose: () => void;
+  // Shown below the tides, for parts that only a location has.
+  children?: ReactNode;
 }
 
-export function TideCard({ name, path, onClose }: TideCardProps) {
+export function TideCard({ name, path, tidesVersion = 0, onClose, children }: TideCardProps) {
   return (
     <section aria-label={name} className="border-t bg-background p-4">
       <div className="flex items-center justify-between">
@@ -26,7 +31,8 @@ export function TideCard({ name, path, onClose }: TideCardProps) {
         </Button>
       </div>
       <CurrentLevel path={path} />
-      <TidePanel key={path} path={path} />
+      <TidePanel key={`${path}#${tidesVersion}`} path={path} />
+      {children}
     </section>
   );
 }

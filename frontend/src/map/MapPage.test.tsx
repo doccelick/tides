@@ -58,6 +58,7 @@ describe("MapPage", () => {
         if (url.endsWith("/water-level"))
           return Promise.resolve(new Response(null, { status: 404 }));
         if (url === "/v1/locations") return Promise.resolve(Response.json({ locations }));
+        if (url.endsWith("/imports")) return Promise.resolve(Response.json({ imports: [] }));
         return Promise.resolve(Response.json({ stations }));
       }),
     );
@@ -103,6 +104,7 @@ describe("MapPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Bergen" }));
     expect(screen.getByRole("region", { name: "Bergen" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
@@ -116,6 +118,7 @@ describe("MapPage", () => {
     await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
 
     expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Imports" })).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/v1/locations/3/tides?"),
       expect.anything(),
@@ -155,6 +158,7 @@ describe("MapPage", () => {
           if (url.endsWith("/water-level"))
             return Promise.resolve(new Response(null, { status: 404 }));
           if (url === "/v1/locations") return Promise.resolve(Response.json({ locations: [] }));
+          if (url.endsWith("/imports")) return Promise.resolve(Response.json(imports));
           return Promise.resolve(Response.json({ stations }));
         }),
       );

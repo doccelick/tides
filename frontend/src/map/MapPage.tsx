@@ -4,6 +4,7 @@ import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Button } from "@/components/ui/button";
+import { LocationImports } from "@/imports/LocationImports";
 import { kartverketSource, type BaseLayer } from "./kartverketSource";
 import { NewLocationCard } from "./NewLocationCard";
 import { TideCard } from "./TideCard";
@@ -16,7 +17,7 @@ setWorkerUrl(workerUrl);
 
 // The card under the map: the tides at a station or location, or the form for a new location.
 type Panel =
-  | { kind: "tides"; name: string; path: string }
+  | { kind: "tides"; name: string; path: string; locationId?: number }
   | { kind: "new-location"; position: PressPosition };
 
 export function MapPage() {
@@ -30,11 +31,12 @@ export function MapPage() {
   const { stations, failed: stationsFailed } = useStations();
   const { locations, failed: locationsFailed, add: addLocation } = useLocations();
   const longPress = useLongPress({ onLongPress: setPressed, onClick: () => setPressed(null) });
+  const [tidesVersion, setTidesVersion] = useState(0);
 
-  function openTides(button: HTMLButtonElement, name: string, path: string) {
+  function openTides(button: HTMLButtonElement, tides: Panel) {
     selectedMarkerRef.current = button;
     setPressed(null);
-    setPanel({ kind: "tides", name, path });
+    setPanel(tides);
   }
 
   return (
@@ -62,7 +64,11 @@ export function MapPage() {
                 type="button"
                 aria-label={station.name}
                 onClick={(event) =>
-                  openTides(event.currentTarget, station.name, `/v1/stations/${station.code}`)
+                  openTides(event.currentTarget, {
+                    kind: "tides",
+                    name: station.name,
+                    path: `/v1/stations/${station.code}`,
+                  })
                 }
                 className="flex size-11 cursor-pointer items-center justify-center"
               >
@@ -76,7 +82,12 @@ export function MapPage() {
                 type="button"
                 aria-label={location.name}
                 onClick={(event) =>
-                  openTides(event.currentTarget, location.name, `/v1/locations/${location.id}`)
+                  openTides(event.currentTarget, {
+                    kind: "tides",
+                    name: location.name,
+                    path: `/v1/locations/${location.id}`,
+                    locationId: location.id,
+                  })
                 }
                 className="flex size-11 cursor-pointer items-center justify-center"
               >
@@ -149,11 +160,19 @@ export function MapPage() {
           key={panel.path}
           name={panel.name}
           path={panel.path}
+          tidesVersion={tidesVersion}
           onClose={() => {
             setPanel(null);
             selectedMarkerRef.current?.focus({ preventScroll: true });
           }}
-        />
+        >
+          {panel.locationId !== undefined && (
+            <LocationImports
+              locationId={panel.locationId}
+              onChanged={() => setTidesVersion((current) => current + 1)}
+            />
+          )}
+        </TideCard>
       )}
       {panel?.kind === "new-location" && (
         <NewLocationCard
@@ -161,7 +180,12 @@ export function MapPage() {
           position={panel.position}
           onCreated={(location) => {
             addLocation(location);
-            setPanel({ kind: "tides", name: location.name, path: `/v1/locations/${location.id}` });
+            setPanel({
+              kind: "tides",
+              name: location.name,
+              path: `/v1/locations/${location.id}`,
+              locationId: location.id,
+            });
           }}
           onClose={() => setPanel(null)}
         />
