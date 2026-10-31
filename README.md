@@ -4,13 +4,15 @@ Imports tide data from Kartverket's public API, stores it in SQL Server and serv
 
 ## Quick start
 
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/), and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) for applying the database migrations.
+
+Copy `.env.example` to `.env` and set a password for SQL Server in `MSSQL_SA_PASSWORD`, then start the stack:
 
 ```shell
 docker compose up --watch
 ```
 
-Open `http://localhost:5173`, or browse the API at `http://localhost:8080/scalar/v1`. See [docs/development.md](docs/development.md) for running without Docker, and [docs/testing.md](docs/testing.md) for the tests.
+On the first run, apply the migrations as described under [Database](docs/development.md#database) before you save locations. Then open `http://localhost:5173`, or browse the API at `http://localhost:8080/scalar/v1`. See [docs/development.md](docs/development.md) for running without Docker, and [docs/testing.md](docs/testing.md) for the tests.
 
 ## Documentation
 
