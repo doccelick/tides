@@ -3,6 +3,7 @@ import { ArrowUpIcon, ArrowDownIcon, CloudIcon, DatabaseIcon } from "lucide-reac
 import { cn } from "cn";
 import { formatTideDay, formatTideLevel, formatTideTime } from "./format";
 import type { SourcedTide } from "./fetchTides";
+import { useIsAdmin } from "@/auth/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,6 +16,7 @@ interface TideTileProps {
 const tileClassName = "snap-start shrink-0 w-40 rounded-lg border p-3";
 
 export function TideTile({ tide, now, isPast }: TideTileProps) {
+  const isAdmin = useIsAdmin();
   const isHigh = tide.type === "High";
   const Icon = isHigh ? ArrowUpIcon : ArrowDownIcon;
   const label = isHigh ? "High" : "Low";
@@ -27,11 +29,13 @@ export function TideTile({ tide, now, isPast }: TideTileProps) {
       <p className="flex items-center gap-1 text-sm">
         <Icon className="size-4" />
         {label}
-        <SourceIcon
-          role="img"
-          aria-label={sourceLabel}
-          className="ml-auto size-3 text-muted-foreground"
-        />
+        {isAdmin && (
+          <SourceIcon
+            role="img"
+            aria-label={sourceLabel}
+            className="ml-auto size-3 text-muted-foreground"
+          />
+        )}
       </p>
       <p
         className={cn(
