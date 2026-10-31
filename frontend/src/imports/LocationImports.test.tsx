@@ -48,6 +48,18 @@ describe("LocationImports", () => {
     expect(screen.getByText("1,031 entries")).toBeInTheDocument();
   });
 
+  it("starts collapsed with the number of imports and opens on tap", async () => {
+    const user = userEvent.setup();
+    render(<LocationImports locationId={3} onChanged={vi.fn()} />);
+
+    const summary = await screen.findByText("Imports (1)");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+
+    await user.click(summary);
+
+    expect(summary.closest("details")).toHaveAttribute("open");
+  });
+
   it("deletes an import after confirming and reports the change", async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
