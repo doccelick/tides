@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Button } from "@/components/ui/button";
 import { LocationImports } from "@/imports/LocationImports";
+import { DeleteLocationButton } from "./DeleteLocationButton";
 import { kartverketSource, type BaseLayer } from "./kartverketSource";
 import { NewLocationCard } from "./NewLocationCard";
 import { TideCard } from "./TideCard";
@@ -29,7 +30,12 @@ export function MapPage() {
   const isTopo = baseLayer === "topo";
   const isNautical = baseLayer === "nautical";
   const { stations, failed: stationsFailed } = useStations();
-  const { locations, failed: locationsFailed, add: addLocation } = useLocations();
+  const {
+    locations,
+    failed: locationsFailed,
+    add: addLocation,
+    remove: removeLocation,
+  } = useLocations();
   const longPress = useLongPress({ onLongPress: setPressed, onClick: () => setPressed(null) });
   const [tidesVersion, setTidesVersion] = useState(0);
 
@@ -167,10 +173,20 @@ export function MapPage() {
           }}
         >
           {panel.locationId !== undefined && (
-            <LocationImports
-              locationId={panel.locationId}
-              onChanged={() => setTidesVersion((current) => current + 1)}
-            />
+            <>
+              <LocationImports
+                locationId={panel.locationId}
+                onChanged={() => setTidesVersion((current) => current + 1)}
+              />
+              <DeleteLocationButton
+                locationId={panel.locationId}
+                name={panel.name}
+                onDeleted={(locationId) => {
+                  removeLocation(locationId);
+                  setPanel(null);
+                }}
+              />
+            </>
           )}
         </TideCard>
       )}

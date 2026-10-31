@@ -35,5 +35,9 @@ export function useLocations() {
     setLocations((current) => [...current, location]);
   }
 
-  return { locations, failed, add };
+  function remove(locationId: number) {
+    setLocations((current) => current.filter((location) => location.id !== locationId));
+  }
+
+  return { locations, failed, add, remove };
 }
