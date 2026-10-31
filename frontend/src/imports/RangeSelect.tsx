@@ -15,6 +15,7 @@ interface RangeSelectProps {
   onValueChange: (label: string) => void;
   // Presets whose range this returns true for are marked as imported and cannot be picked.
   isImported?: (range: UtcRange) => boolean;
+  label?: string;
 }
 
 const groups = [...new Set(importPresets.map((preset) => preset.group))];
@@ -24,6 +25,7 @@ export function RangeSelect({
   value,
   onValueChange,
   isImported = () => false,
+  label = "Range",
 }: RangeSelectProps) {
   return (
     <Select
@@ -32,7 +34,7 @@ export function RangeSelect({
         if (label !== null) onValueChange(label);
       }}
     >
-      <SelectTrigger aria-label="Range" className="h-11 w-full">
+      <SelectTrigger aria-label={label} className="h-11 w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

@@ -64,7 +64,7 @@ describe("MapPage", () => {
       "fetch",
       vi.fn((url: string) => {
         if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
-        if (url.endsWith("/water-level"))
+        if (url.endsWith("/water-level") || url.includes("/samples?"))
           return Promise.resolve(new Response(null, { status: 404 }));
         if (url === "/v1/locations") return Promise.resolve(Response.json({ locations }));
         if (url.endsWith("/imports")) return Promise.resolve(Response.json({ imports: [] }));
@@ -176,7 +176,7 @@ describe("MapPage", () => {
           if (init?.method === "POST")
             return Promise.resolve(Response.json(imports, { status: 201 }));
           if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
-          if (url.endsWith("/water-level"))
+          if (url.endsWith("/water-level") || url.includes("/samples?"))
             return Promise.resolve(new Response(null, { status: 404 }));
           if (url === "/v1/locations") return Promise.resolve(Response.json({ locations: [] }));
           if (url.endsWith("/imports")) return Promise.resolve(Response.json(imports));
