@@ -50,6 +50,20 @@ public class LocationTideEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetLocationTides_KnownLocation_ReturnsNoCacheWithETag()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+
+        var response = await _client.GetAsync($"/v1/locations/{location.Id}/tides", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoCache);
+        Assert.Null(response.Headers.CacheControl?.MaxAge);
+        Assert.NotNull(response.Headers.ETag);
+    }
+
+    [Fact]
     public async Task GetLocationTides_ImportedWindow_ReturnsStoredHighsAndLows()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

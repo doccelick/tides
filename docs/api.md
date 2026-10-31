@@ -142,7 +142,7 @@ The API imports only the parts of the range that no earlier import for the locat
 
 ## Caching
 
-`GET /v1/stations` and both tide endpoints respond with `Cache-Control: public, max-age=3600` and an `ETag`. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
+`GET /v1/stations` and `GET /v1/stations/{code}/tides` respond with `Cache-Control: public, max-age=3600` and an `ETag`. `GET /v1/locations/{id}/tides` responds with `Cache-Control: no-cache` and an `ETag`, because adding or deleting an import can change its response, so clients check with the API each time before they reuse it. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
 
 ## Errors
 
