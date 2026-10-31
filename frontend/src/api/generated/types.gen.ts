@@ -303,6 +303,14 @@ export type CreateLocationErrors = {
    */
   400: HttpValidationProblemDetails;
   /**
+   * Unauthorized
+   */
+  401: ProblemDetails;
+  /**
+   * Forbidden
+   */
+  403: ProblemDetails;
+  /**
    * Unprocessable Entity
    */
   422: ProblemDetails;
@@ -334,10 +342,20 @@ export type DeleteLocationData = {
 
 export type DeleteLocationErrors = {
   /**
+   * Unauthorized
+   */
+  401: ProblemDetails;
+  /**
+   * Forbidden
+   */
+  403: ProblemDetails;
+  /**
    * Not Found
    */
   404: unknown;
 };
+
+export type DeleteLocationError = DeleteLocationErrors[keyof DeleteLocationErrors];
 
 export type DeleteLocationResponses = {
   /**
@@ -390,6 +408,14 @@ export type CreateImportErrors = {
    */
   400: HttpValidationProblemDetails;
   /**
+   * Unauthorized
+   */
+  401: ProblemDetails;
+  /**
+   * Forbidden
+   */
+  403: ProblemDetails;
+  /**
    * Not Found
    */
   404: ProblemDetails;
@@ -425,10 +451,20 @@ export type DeleteImportData = {
 
 export type DeleteImportErrors = {
   /**
+   * Unauthorized
+   */
+  401: ProblemDetails;
+  /**
+   * Forbidden
+   */
+  403: ProblemDetails;
+  /**
    * Not Found
    */
   404: unknown;
 };
+
+export type DeleteImportError = DeleteImportErrors[keyof DeleteImportErrors];
 
 export type DeleteImportResponses = {
   /**

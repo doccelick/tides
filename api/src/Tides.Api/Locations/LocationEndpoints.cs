@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Tides.Api.Auth;
 
 namespace Tides.Api.Locations;
 
@@ -10,6 +11,9 @@ public static class LocationEndpoints
             .WithName("CreateLocation")
             .WithTags("Locations")
             .WithSummary("Creates a location.")
+            .RequireAuthorization(AuthPolicies.Admin)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .ProducesValidationProblem();
@@ -22,7 +26,10 @@ public static class LocationEndpoints
         routes.MapDelete("/locations/{id:int:min(1)}", DeleteLocationAsync)
             .WithName("DeleteLocation")
             .WithTags("Locations")
-            .WithSummary("Deletes a location and its imported tide data.");
+            .WithSummary("Deletes a location and its imported tide data.")
+            .RequireAuthorization(AuthPolicies.Admin)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         return routes;
     }
