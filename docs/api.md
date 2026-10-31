@@ -216,7 +216,7 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 
 | Status | When |
 | --- | --- |
-| `400 Bad Request` | `from` is not a valid date, `days` is not a whole number from 1 to 31, or `interval` is not `10` or `60`. An invalid `days` or `interval` value is listed under `errors` |
+| `400 Bad Request` | `from` is not a valid date, `days` is not a whole number from 1 to 31, `interval` is not `10` or `60`, or the range ends after 9999-12-30. An invalid `days` or `interval` value is listed under `errors`, and a range that ends too late under `from` |
 | `401 Unauthorized` | A request to save or delete has no access token, or the token is not valid for the API |
 | `403 Forbidden` | A request to save or delete has a valid token without the `Admin` role |
 | `404 Not Found` | The station code is unknown. The title is `Station not found.` |

@@ -35,7 +35,7 @@ public static class TideEndpoints
         return routes;
     }
 
-    private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetStationTidesAsync(
+    private static async Task<Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult>> GetStationTidesAsync(
         string code,
         DateOnly? from,
         [Range(1, MaxDays)] int? days,
@@ -44,6 +44,11 @@ public static class TideEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        if (DayRangeValidation.Validate(from, days ?? DefaultDays) is { } invalidRange)
+        {
+            return invalidRange;
+        }
+
         var station = await stationService.GetStationAsync(code, cancellationToken);
 
         if (station is null)
@@ -67,7 +72,7 @@ public static class TideEndpoints
         return ToResult(snapshot, context, "No tide data for this station.", cacheControl);
     }
 
-    private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
+    private static async Task<Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
         int id,
         DateOnly? from,
         [Range(1, MaxDays)] int? days,
@@ -76,6 +81,11 @@ public static class TideEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        if (DayRangeValidation.Validate(from, days ?? DefaultDays) is { } invalidRange)
+        {
+            return invalidRange;
+        }
+
         var location = await locationService.GetLocationAsync(id, cancellationToken);
 
         if (location is null)
@@ -91,7 +101,7 @@ public static class TideEndpoints
         return ToResult(snapshot, context, "No tide data for this location.", cacheControl);
     }
 
-    private static Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult> ToResult(
+    private static Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult> ToResult(
         TidesSnapshot snapshot,
         HttpContext context,
         string noDataTitle,

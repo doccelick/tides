@@ -85,9 +85,6 @@
               }
             }
           },
-          "304": {
-            "description": "Not Modified"
-          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -97,6 +94,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Not Modified"
           },
           "404": {
             "description": "Not Found",
@@ -169,9 +169,6 @@
               }
             }
           },
-          "304": {
-            "description": "Not Modified"
-          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -181,6 +178,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Not Modified"
           },
           "404": {
             "description": "Not Found",
@@ -375,9 +375,6 @@
               }
             }
           },
-          "304": {
-            "description": "Not Modified"
-          },
           "400": {
             "description": "Bad Request",
             "content": {
@@ -387,6 +384,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Not Modified"
           },
           "404": {
             "description": "Not Found",

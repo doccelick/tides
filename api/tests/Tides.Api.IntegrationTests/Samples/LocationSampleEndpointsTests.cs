@@ -148,6 +148,19 @@ public class LocationSampleEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetLocationSamples_RangeEndingAfterLastRepresentableDay_ReturnsValidationProblem()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+
+        var response = await _client.GetAsync($"/v1/locations/{location.Id}/samples?from=9999-12-31", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
+        Assert.Contains("from", body!.Errors.Keys);
+    }
+
+    [Fact]
     public async Task GetLocationSamples_MatchingETag_ReturnsNotModified()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

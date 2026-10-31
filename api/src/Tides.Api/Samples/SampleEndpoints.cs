@@ -25,7 +25,7 @@ public static class SampleEndpoints
         return routes;
     }
 
-    private static async Task<Results<Ok<SamplesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetLocationSamplesAsync(
+    private static async Task<Results<Ok<SamplesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult>> GetLocationSamplesAsync(
         int id,
         DateOnly? from,
         [Range(1, MaxDays)] int? days,
@@ -35,6 +35,11 @@ public static class SampleEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        if (DayRangeValidation.Validate(from, days ?? DefaultDays) is { } invalidRange)
+        {
+            return invalidRange;
+        }
+
         var location = await locationService.GetLocationAsync(id, cancellationToken);
 
         if (location is null)

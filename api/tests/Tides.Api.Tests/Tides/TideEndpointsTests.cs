@@ -181,4 +181,37 @@ public class TideEndpointsTests(WebApplicationFactory<Program> factory)
         Assert.Contains("days", body!.Errors.Keys);
         Assert.Equal(0, handler.RequestCount);
     }
+
+    [Theory]
+    [InlineData("9999-12-31", 1)]
+    [InlineData("9999-12-30", 2)]
+    public async Task GetStationTides_RangeEndingAfterLastRepresentableDay_ReturnsValidationProblem(string from, int days)
+    {
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = await CreateHandlerAsync("locationdata.xml", cancellationToken);
+        await using var app = CreateApp(handler, timeProvider);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync($"/v1/stations/BOO/tides?from={from}&days={days}", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
+        Assert.Contains("from", body!.Errors.Keys);
+        Assert.Equal(0, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task GetStationTides_RangeEndingOnLastRepresentableDay_ReturnsOk()
+    {
+        var timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero));
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = await CreateHandlerAsync("locationdata.xml", cancellationToken);
+        await using var app = CreateApp(handler, timeProvider);
+        var client = app.CreateClient();
+
+        var response = await client.GetAsync("/v1/stations/BOO/tides?from=9999-12-30&days=1", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }
