@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImportResponse } from "@/api/generated";
 import { LocationImports } from "./LocationImports";
 
@@ -13,6 +13,13 @@ const november: ImportResponse = {
   entryCount: 1031,
 };
 
+const december: ImportResponse = {
+  ...november,
+  id: 13,
+  from: "2026-12-01T00:00:00+00:00",
+  to: "2026-12-08T00:00:00+00:00",
+};
+
 describe("LocationImports", () => {
   let stored: ImportResponse[];
 
@@ -21,6 +28,10 @@ describe("LocationImports", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          stored = [...stored, december];
+          return Promise.resolve(Response.json({ imports: [december] }, { status: 201 }));
+        }
         if (init?.method === "DELETE") {
           stored = stored.filter((i) => url !== `/v1/imports/${i.id}`);
           return Promise.resolve(new Response(null, { status: 204 }));
@@ -63,6 +74,57 @@ describe("LocationImports", () => {
 
     expect(screen.getByText("1 Nov – 7 Nov 2026")).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalledWith("/v1/imports/12", { method: "DELETE" });
+  });
+
+  it("imports the chosen range and shows which days were added", async () => {
+    const user = userEvent.setup();
+    const onChanged = vi.fn();
+    render(<LocationImports locationId={3} onChanged={onChanged} />);
+
+    await user.click(await screen.findByRole("button", { name: "Import" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Imported 1 Dec – 7 Dec 2026");
+    expect(await screen.findByText("1 Dec – 7 Dec 2026")).toBeInTheDocument();
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("shows the API's message when the import fails", async () => {
+    const user = userEvent.setup();
+    const title = "Kartverket's Tide API is unavailable.";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) =>
+        Promise.resolve(
+          init?.method === "POST"
+            ? Response.json({ status: 502, title }, { status: 502 })
+            : Response.json({ imports: stored }),
+        ),
+      ),
+    );
+    render(<LocationImports locationId={3} onChanged={vi.fn()} />);
+
+    await user.click(await screen.findByRole("button", { name: "Import" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(title);
+  });
+
+  describe("when the chosen range is already imported", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
+      // Covers "Next 31 days", the default preset, from 31 October.
+      stored = [
+        { ...november, from: "2026-10-31T00:00:00+00:00", to: "2026-12-01T00:00:00+00:00" },
+      ];
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    it("disables the import", async () => {
+      render(<LocationImports locationId={3} onChanged={vi.fn()} />);
+
+      expect(await screen.findByRole("button", { name: "Already imported" })).toBeDisabled();
+    });
   });
 
   it("shows a notice when the imports fail to load", async () => {

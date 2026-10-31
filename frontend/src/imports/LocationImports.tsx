@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImportForm } from "./ImportForm";
 import { ImportRow } from "./ImportRow";
 import { useImports } from "./useImports";
 
@@ -11,7 +12,7 @@ interface LocationImportsProps {
 export function LocationImports({ locationId, onChanged }: LocationImportsProps) {
   const { state, reload } = useImports(locationId);
 
-  function handleDeleted() {
+  function handleChanged() {
     reload();
     onChanged();
   }
@@ -31,9 +32,12 @@ export function LocationImports({ locationId, onChanged }: LocationImportsProps)
       {state.status === "loaded" && state.imports.length > 0 && (
         <ul className="flex flex-col">
           {state.imports.map((stored) => (
-            <ImportRow key={stored.id} stored={stored} onDeleted={handleDeleted} />
+            <ImportRow key={stored.id} stored={stored} onDeleted={handleChanged} />
           ))}
         </ul>
+      )}
+      {state.status === "loaded" && (
+        <ImportForm locationId={locationId} imports={state.imports} onImported={handleChanged} />
       )}
     </section>
   );
