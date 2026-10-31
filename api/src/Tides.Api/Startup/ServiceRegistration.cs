@@ -18,7 +18,7 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddApiInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOpenApi();
+        services.AddOpenApi(options => options.AddOperationTransformer<AllowedValuesTransformer>());
         services.AddHealthChecks();
 
         // Without this, OpenAPI describes every number as number or string.

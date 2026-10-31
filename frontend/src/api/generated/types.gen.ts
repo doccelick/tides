@@ -296,7 +296,7 @@ export type GetLocationSamplesData = {
   query?: {
     from?: string;
     days?: number;
-    interval?: number;
+    interval?: 10 | 60;
   };
   url: "/v1/locations/{id}/samples";
 };
