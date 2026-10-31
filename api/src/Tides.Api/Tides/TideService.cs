@@ -47,7 +47,7 @@ public sealed class TideService(
             return await GetLiveTidesAsync(location.Latitude, location.Longitude, from, to, cancellationToken);
         }
 
-        return CreateSnapshot(await GetStoredTidesAsync(location.Id, from, to, cancellationToken));
+        return CreateSnapshot(TideSource.Database, await GetStoredTidesAsync(location.Id, from, to, cancellationToken));
     }
 
     private (DateTimeOffset From, DateTimeOffset To) GetRange(DateOnly? firstDay, int days)
@@ -71,7 +71,7 @@ public sealed class TideService(
         {
             var tides = await kartverket.GetTidesAsync(latitude, longitude, from, to, ct);
 
-            return CreateSnapshot([.. tides.Select(t => new TideResponse(t.Type, t.Time, t.LevelCm))]);
+            return CreateSnapshot(TideSource.Kartverket, [.. tides.Select(t => new TideResponse(t.Type, t.Time, t.LevelCm))]);
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
@@ -116,9 +116,9 @@ public sealed class TideService(
         _ => throw new ArgumentOutOfRangeException(nameof(entryType), entryType, null),
     };
 
-    private static TidesSnapshot CreateSnapshot(IReadOnlyList<TideResponse> tides)
+    private static TidesSnapshot CreateSnapshot(TideSource source, IReadOnlyList<TideResponse> tides)
     {
-        var response = new TidesResponse("UTC", "cm", "CD", tides);
+        var response = new TidesResponse("UTC", "cm", "CD", source, tides);
 
         return new TidesSnapshot(response, ComputeETag(response));
     }

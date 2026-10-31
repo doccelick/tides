@@ -914,11 +914,18 @@
           }
         }
       },
+      "TideSource": {
+        "enum": [
+          "Database",
+          "Kartverket"
+        ]
+      },
       "TidesResponse": {
         "required": [
           "timeZone",
           "unit",
           "reference",
+          "source",
           "tides"
         ],
         "type": "object",
@@ -931,6 +938,9 @@
           },
           "reference": {
             "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TideSource"
           },
           "tides": {
             "type": "array",
