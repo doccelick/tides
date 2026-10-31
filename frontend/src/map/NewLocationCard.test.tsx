@@ -27,7 +27,14 @@ describe("NewLocationCard", () => {
       .mockResolvedValueOnce(Response.json(imports, { status: 201 }));
     vi.stubGlobal("fetch", fetch);
     const onCreated = vi.fn();
-    render(<NewLocationCard position={position} onCreated={onCreated} onClose={vi.fn()} />);
+    render(
+      <NewLocationCard
+        position={position}
+        onCreated={onCreated}
+        onLocationSaved={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
 
     await submit("Kjerringøy");
 
@@ -39,7 +46,14 @@ describe("NewLocationCard", () => {
     const fetch = vi.fn().mockResolvedValue(problem(422, { title: "Too far from the coast." }));
     vi.stubGlobal("fetch", fetch);
     const onCreated = vi.fn();
-    render(<NewLocationCard position={position} onCreated={onCreated} onClose={vi.fn()} />);
+    render(
+      <NewLocationCard
+        position={position}
+        onCreated={onCreated}
+        onLocationSaved={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
 
     await submit("Inland");
 
@@ -54,7 +68,14 @@ describe("NewLocationCard", () => {
       errors: { Name: ["The field Name must be a string with a maximum length of 100."] },
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(problem(400, body)));
-    render(<NewLocationCard position={position} onCreated={vi.fn()} onClose={vi.fn()} />);
+    render(
+      <NewLocationCard
+        position={position}
+        onCreated={vi.fn()}
+        onLocationSaved={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
 
     await submit("Kjerringøy");
 
@@ -71,15 +92,26 @@ describe("NewLocationCard", () => {
       .mockResolvedValueOnce(Response.json(imports, { status: 201 }));
     vi.stubGlobal("fetch", fetch);
     const onCreated = vi.fn();
-    render(<NewLocationCard position={position} onCreated={onCreated} onClose={vi.fn()} />);
+    const onLocationSaved = vi.fn();
+    render(
+      <NewLocationCard
+        position={position}
+        onCreated={onCreated}
+        onLocationSaved={onLocationSaved}
+        onClose={vi.fn()}
+      />,
+    );
 
     const user = await submit("Kjerringøy");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Location saved, but the import failed: Kartverket's Tide API is unavailable.",
     );
+    expect(onLocationSaved).toHaveBeenCalledWith(location);
+    expect(onCreated).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Retry import" }));
 
+    expect(onLocationSaved).toHaveBeenCalledOnce();
     expect(onCreated).toHaveBeenCalledWith(location);
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch).toHaveBeenLastCalledWith("/v1/locations/3/imports", expect.anything());

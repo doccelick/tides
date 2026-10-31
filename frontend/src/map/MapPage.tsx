@@ -194,8 +194,8 @@ export function MapPage() {
         <NewLocationCard
           key={`${panel.position.latitude},${panel.position.longitude}`}
           position={panel.position}
+          onLocationSaved={addLocation}
           onCreated={(location) => {
-            addLocation(location);
             setPanel({
               kind: "tides",
               name: location.name,

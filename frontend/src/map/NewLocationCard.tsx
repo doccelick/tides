@@ -11,6 +11,9 @@ import type { PressPosition } from "./useLongPress";
 
 interface NewLocationCardProps {
   position: PressPosition;
+  // Called when the location is saved, before its import runs.
+  onLocationSaved: (location: LocationResponse) => void;
+  // Called when the location is saved and its first import succeeded.
   onCreated: (location: LocationResponse) => void;
   onClose: () => void;
 }
@@ -19,7 +22,12 @@ interface NewLocationCardProps {
 const nameMaxLength = 100;
 const defaultPresetLabel = "Next 31 days";
 
-export function NewLocationCard({ position, onCreated, onClose }: NewLocationCardProps) {
+export function NewLocationCard({
+  position,
+  onLocationSaved,
+  onCreated,
+  onClose,
+}: NewLocationCardProps) {
   const [now] = useState(() => new Date());
   const [name, setName] = useState("");
   const [presetLabel, setPresetLabel] = useState(defaultPresetLabel);
@@ -69,6 +77,7 @@ export function NewLocationCard({ position, onCreated, onClose }: NewLocationCar
         return;
       }
 
+      onLocationSaved(result.data);
       await importRange(result.data);
     } finally {
       setSaving(false);
