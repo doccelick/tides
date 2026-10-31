@@ -22,6 +22,7 @@ Compose creates and migrates the database before the API starts. Then open `http
 | Testing | [docs/testing.md](docs/testing.md) |
 | API | [docs/api.md](docs/api.md) |
 | Configuration | [docs/configuration.md](docs/configuration.md) |
+| Authentication | [docs/auth.md](docs/auth.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
 | Code guidelines | [docs/guidelines.md](docs/guidelines.md) |
 | Architecture decisions | [docs/adr/](docs/adr/) |

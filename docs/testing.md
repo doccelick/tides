@@ -47,6 +47,7 @@ npm run test
 - `SqlServerFixture` is an xUnit assembly fixture. It starts one SQL Server container with Testcontainers for the whole test run, from the same image as `compose.yml`, and applies the EF Core migrations to it. The container is removed when the run ends.
 - `TidesApiFactory` starts the API in memory against that database. It takes an optional fake Kartverket handler and an optional `TimeProvider`. `AddLocationAsync` saves a location for a test to use.
 - `FakeKartverketHandler` answers tide and prediction requests with the XML in `KartverketXml` and counts the requests. A test can then check whether the API read from the database or called Kartverket.
+- `TestTokens` signs short-lived access tokens with a random key, with the claims Entra puts in tokens for the API and optional roles. The factory makes the API trust that key and issuer and download nothing from Entra, while Microsoft.Identity.Web still checks the audience and the claims. `CreateSignedInClient("Admin")` returns a client that sends such a token, and `CreateSignedInClient()` one whose token has no role.
 - Endpoint tests send HTTP requests through the factory's client. Service and `TidesDbContext` tests get their objects from a scope on the factory's services and call them directly.
 - All tests share the one database, and nothing is cleared between tests. Each test creates the locations it needs and checks only its own rows.
 
@@ -57,5 +58,6 @@ Vitest runs the tests in jsdom, configured under `test` in `frontend/vite.config
 - Components are rendered with React Testing Library and checked through roles, labels and text, using the jest-dom matchers. `userEvent` drives clicks and typing.
 - Hooks are tested with `renderHook`.
 - Tests replace `fetch` with `vi.stubGlobal` and return `Response` objects, so no API has to run. `unstubGlobals` restores every stubbed global after each test.
+- No test signs in. Tests of the admin tools replace `useIsAdmin` with `vi.mock`, and tests that check the bearer header replace `getAdminToken` with one that returns a fixed token.
 - `src/test/setup.ts` adds the jest-dom matchers and cleans up after each test. jsdom has no `IntersectionObserver`, so the setup gives each test one that does nothing. Tests that need visibility changes stub their own.
 - Tests run with `TZ=Europe/Oslo`, so times are formatted the same on every machine.
