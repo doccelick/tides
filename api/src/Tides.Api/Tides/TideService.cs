@@ -14,6 +14,7 @@ public sealed class TideService(
     HybridCache cache,
     KartverketClient kartverket,
     TidesDbContext database,
+    ImportService importService,
     TimeProvider timeProvider)
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new()
@@ -42,7 +43,7 @@ public sealed class TideService(
     {
         var (from, to) = GetRange(firstDay, days);
 
-        if (!await IsCoveredByImportsAsync(location.Id, from, to, cancellationToken))
+        if (!await importService.CoversRangeAsync(location.Id, from, to, cancellationToken))
         {
             return await GetLiveTidesAsync(location.Latitude, location.Longitude, from, to, cancellationToken);
         }
@@ -73,21 +74,6 @@ public sealed class TideService(
 
             return CreateSnapshot(TideSource.Kartverket, [.. tides.Select(t => new TideResponse(t.Type, t.Time, t.LevelCm))]);
         }, CacheOptions, cancellationToken: cancellationToken);
-    }
-
-    private async Task<bool> IsCoveredByImportsAsync(
-        int locationId,
-        DateTimeOffset from,
-        DateTimeOffset to,
-        CancellationToken cancellationToken)
-    {
-        var imports = await database.Imports
-            .AsNoTracking()
-            .Where(i => i.LocationId == locationId && i.From < to && from < i.To)
-            .Select(i => new { i.From, i.To })
-            .ToListAsync(cancellationToken);
-
-        return ImportGaps.Find(from, to, imports.Select(i => (i.From, i.To))).Count == 0;
     }
 
     private async Task<IReadOnlyList<TideResponse>> GetStoredTidesAsync(
