@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApiInfrastructure(builder.Configuration);
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddTideServices();
+builder.Services.AddAdminAuth(builder.Configuration);
 
 var app = builder.Build();
 

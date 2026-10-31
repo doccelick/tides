@@ -1,6 +1,9 @@
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Tides.Api.Data;
 using Tides.Api.Kartverket;
@@ -28,7 +31,27 @@ public sealed class TidesApiFactory(
             {
                 services.AddSingleton(timeProvider);
             }
+
+            // Tokens are signed by TestTokens in place of Entra, so the API
+            // must not download Entra's metadata and signing keys.
+            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.ConfigurationManager = null;
+                options.TokenValidationParameters.IssuerValidator = null;
+                options.TokenValidationParameters.ValidIssuer = TestTokens.Issuer;
+                options.TokenValidationParameters.IssuerSigningKey = TestTokens.SigningKey;
+            });
         });
+    }
+
+    public HttpClient CreateSignedInClient(params string[] roles)
+    {
+        var audience = Services.GetRequiredService<IConfiguration>()["AzureAd:ClientId"]!;
+
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.Create(audience, roles));
+
+        return client;
     }
 
     public async Task<Location> AddLocationAsync(CancellationToken cancellationToken)

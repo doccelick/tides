@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Tides.Api.Auth;
 using Tides.Api.Locations;
 
 namespace Tides.Api.Imports;
@@ -11,6 +12,9 @@ public static class ImportEndpoints
             .WithName("CreateImport")
             .WithTags("Imports")
             .WithSummary("Imports the parts of a range that are not imported yet.")
+            .RequireAuthorization(AuthPolicies.Admin)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status502BadGateway)
@@ -25,7 +29,10 @@ public static class ImportEndpoints
         routes.MapDelete("/imports/{importId:int:min(1)}", DeleteImportAsync)
             .WithName("DeleteImport")
             .WithTags("Imports")
-            .WithSummary("Deletes an import and its tide data");
+            .WithSummary("Deletes an import and its tide data")
+            .RequireAuthorization(AuthPolicies.Admin)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         return routes;
     }

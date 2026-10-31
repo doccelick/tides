@@ -1,6 +1,6 @@
 # API
 
-The API serves JSON over HTTP. Endpoints are versioned under `/v1`. Most of them read tide data that Kartverket publishes openly under CC BY 4.0. The location and import endpoints also save and delete locations and their imported tide data. None of the endpoints require authentication.
+The API serves JSON over HTTP. Endpoints are versioned under `/v1`. Most of them read tide data that Kartverket publishes openly under CC BY 4.0. The location and import endpoints also save and delete locations and their imported tide data. Saving and deleting need an access token with the `Admin` role, described under [Authentication](#authentication), and every other endpoint is open.
 
 When run locally, the API listens on `http://localhost:8080`. See [development.md](development.md) for how to start it.
 
@@ -175,6 +175,10 @@ The API imports only the parts of the range that no earlier import for the locat
 
 `GET /v1/stations` and `GET /v1/stations/{code}/tides` respond with `Cache-Control: public, max-age=3600` and an `ETag`. `GET /v1/locations/{id}/tides` responds with `Cache-Control: no-cache` and an `ETag`, because adding or deleting an import can change its response, so clients check with the API each time before they reuse it. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
 
+## Authentication
+
+`POST /v1/locations`, `DELETE /v1/locations/{id}`, `POST /v1/locations/{id}/imports` and `DELETE /v1/imports/{id}` need a Microsoft Entra ID access token in the `Authorization: Bearer <token>` header. Entra must have issued the token in the tenant set in `AzureAd:TenantId`, for the API registration set in `AzureAd:ClientId`, described in [configuration.md](configuration.md). The token must also carry the `Admin` app role in its `roles` claim. Without a valid token the API answers `401 Unauthorized`, and with a valid token that lacks the role it answers `403 Forbidden`.
+
 ## Errors
 
 Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) with the `application/problem+json` content type.
@@ -182,6 +186,8 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | Status | When |
 | --- | --- |
 | `400 Bad Request` | `from` is not a valid date, or `days` is not a whole number from 1 to 31. An invalid `days` value is listed under `errors` |
+| `401 Unauthorized` | A request to save or delete has no access token, or the token is not valid for the API |
+| `403 Forbidden` | A request to save or delete has a valid token without the `Admin` role |
 | `404 Not Found` | The station code is unknown. The title is `Station not found.` |
 | `404 Not Found` | Kartverket has no tide data for the station. The title is `No tide data for this station.` |
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |

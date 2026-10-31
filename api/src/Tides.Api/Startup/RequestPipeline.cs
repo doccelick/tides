@@ -15,6 +15,8 @@ public static class RequestPipeline
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseCors();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         return app;
     }

@@ -19,7 +19,7 @@ public class LocationEndpointsTests : IAsyncDisposable
     {
         _database = database;
         _factory = new TidesApiFactory(database, new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions));
-        _client = _factory.CreateClient();
+        _client = _factory.CreateSignedInClient("Admin");
     }
 
     public ValueTask DisposeAsync() => _factory.DisposeAsync();
@@ -72,7 +72,7 @@ public class LocationEndpointsTests : IAsyncDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var inlandFactory = new TidesApiFactory(_database, new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.NoData));
-        var inlandClient = inlandFactory.CreateClient();
+        var inlandClient = inlandFactory.CreateSignedInClient("Admin");
 
         var response = await inlandClient.PostAsJsonAsync(
             "/v1/locations",
