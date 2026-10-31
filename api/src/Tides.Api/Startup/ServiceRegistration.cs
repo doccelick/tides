@@ -7,6 +7,7 @@ using Tides.Api.Data;
 using Tides.Api.Imports;
 using Tides.Api.Kartverket;
 using Tides.Api.Locations;
+using Tides.Api.Samples;
 using Tides.Api.Stations;
 using Tides.Api.Tides;
 using Tides.Api.WaterLevels;
@@ -57,6 +58,7 @@ public static class ServiceRegistration
         services.AddScoped<WaterLevelService>();
         services.AddScoped<ImportService>();
         services.AddScoped<LocationService>();
+        services.AddScoped<SampleService>();
 
         return services;
     }

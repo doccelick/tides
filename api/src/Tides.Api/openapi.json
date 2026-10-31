@@ -315,6 +315,88 @@
         }
       }
     },
+    "/v1/locations/{id}/samples": {
+      "get": {
+        "tags": [
+          "Samples"
+        ],
+        "summary": "Returns predicted water levels every 10 or 60 minutes for a range of UTC days for a specified location, read from its imports. Defaults to today and tomorrow every 10 minutes.",
+        "operationId": "GetLocationSamples",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "maximum": 31,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamplesResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/locations": {
       "post": {
         "tags": [
@@ -934,6 +1016,59 @@
           }
         }
       },
+      "SampleResponse": {
+        "required": [
+          "time",
+          "levelCm"
+        ],
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "levelCm": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SamplesResponse": {
+        "required": [
+          "locationId",
+          "timeZone",
+          "unit",
+          "reference",
+          "intervalMinutes",
+          "samples"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SampleResponse"
+            }
+          }
+        }
+      },
       "StationResponse": {
         "required": [
           "code",
@@ -1080,6 +1215,9 @@
     },
     {
       "name": "Water levels"
+    },
+    {
+      "name": "Samples"
     },
     {
       "name": "Locations"
