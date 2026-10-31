@@ -31,6 +31,17 @@ describe("sendJson", () => {
     expect(result).toEqual({ ok: true, data: undefined });
   });
 
+  it("returns an error when a successful response is not JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>", { status: 200 })));
+
+    const result = await sendJson("POST", "/v1/locations", {});
+
+    expect(result).toEqual({
+      ok: false,
+      error: { message: "Unexpected response from the API (200)", fieldErrors: {} },
+    });
+  });
+
   it("uses the problem title as the error message", async () => {
     const problem = { status: 422, title: "Too far from the coast." };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(problem, { status: 422 })));

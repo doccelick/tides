@@ -37,8 +37,13 @@ export async function sendJson<T>(
     return { ok: true, data: undefined as T };
   }
 
-  const data: T = await response.json();
-  return { ok: true, data };
+  try {
+    const data: T = await response.json();
+    return { ok: true, data };
+  } catch {
+    const message = `Unexpected response from the API (${response.status})`;
+    return { ok: false, error: { message, fieldErrors: {} } };
+  }
 }
 
 async function readProblem(response: Response): Promise<ApiError> {
