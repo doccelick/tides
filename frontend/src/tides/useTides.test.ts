@@ -4,7 +4,13 @@ import type { TideResponse, TidesResponse } from "@/api/generated";
 import { useTides } from "./useTides";
 
 function tidesResponse(tides: TideResponse[]): Response {
-  const body: TidesResponse = { timeZone: "UTC", unit: "cm", reference: "CD", tides };
+  const body: TidesResponse = {
+    timeZone: "UTC",
+    unit: "cm",
+    reference: "CD",
+    source: "Kartverket",
+    tides,
+  };
   return Response.json(body);
 }
 

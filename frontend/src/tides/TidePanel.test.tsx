@@ -8,6 +8,7 @@ const tides: TidesResponse = {
   timeZone: "UTC",
   unit: "cm",
   reference: "CD",
+  source: "Kartverket",
   tides: [
     { type: "High", time: "2026-10-19T03:48:00+00:00", levelCm: 223 },
     { type: "Low", time: "2026-10-19T09:45:00+00:00", levelCm: 143 },
@@ -90,5 +91,21 @@ describe("TidePanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(await screen.findByText("231 cm")).toBeInTheDocument();
+  });
+
+  it("shows the source of each tide", async () => {
+    vi.stubGlobal("IntersectionObserver", VisibleIntersectionObserver);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(tides))
+        .mockResolvedValueOnce(new Response(null, { status: 404 }))
+        .mockResolvedValueOnce(Response.json({ ...laterTides, source: "Database" })),
+    );
+    render(<TidePanel path="/v1/locations/3" />);
+
+    expect(await screen.findByRole("img", { name: "From database" })).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "From Kartverket" })).toHaveLength(2);
   });
 });

@@ -1,4 +1,7 @@
-import type { TideResponse, TidesResponse } from "@/api/generated";
+import type { TideResponse, TideSource, TidesResponse } from "@/api/generated";
+
+// The source is per response, and the strip joins several responses.
+export type SourcedTide = TideResponse & { source: TideSource };
 
 // `path` is the station or location, for example `/v1/stations/BGO` or `/v1/locations/3`.
 // Returns null when there is no tide data for the range.
@@ -7,7 +10,7 @@ export async function fetchTides(
   from: string,
   days: number,
   signal?: AbortSignal,
-): Promise<TideResponse[] | null> {
+): Promise<SourcedTide[] | null> {
   const response = await fetch(`${path}/tides?from=${from}&days=${days}`, { signal });
 
   if (response.status === 404) {
@@ -19,5 +22,5 @@ export async function fetchTides(
   }
 
   const result: TidesResponse = await response.json();
-  return result.tides;
+  return result.tides.map((tide) => ({ ...tide, source: result.source }));
 }
