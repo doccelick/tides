@@ -1,6 +1,6 @@
 # Authentication
 
-Reading tide data needs no sign-in. Saving and deleting locations and imports needs a Microsoft Entra ID access token with the `Admin` app role, as described under [Authentication](api.md#authentication) in api.md. Only the React app signs in. It uses MSAL React with the redirect flow, and the API validates the tokens with Microsoft.Identity.Web. No client secret exists anywhere.
+Reading tide data needs no sign-in. Saving and deleting locations and imports needs a Microsoft Entra ID access token with the `Admin` app role, as described under [Authentication](api.md#authentication) in api.md. Only the React app signs in. It uses MSAL React with the redirect flow, and the API validates the tokens with Microsoft.Identity.Web. No client secret exists anywhere. [ADR 0004](adr/0004-entra-app-roles-for-admin-access.md) records why access works this way.
 
 ## App registrations
 
