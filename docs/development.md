@@ -6,13 +6,15 @@
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), for running and testing the API without Docker
 - [Node.js](https://nodejs.org/) 22.22.2+, 24.15+ or 26+, for running and testing the frontend without Docker
 
-The SQL Server image runs only on x86-64. Microsoft doesn't support it under emulation, such as Rosetta 2 on Apple silicon or Prism on Windows on Arm. On those machines, run only the unit tests, as described under [Run the tests](#run-the-tests).
+The SQL Server image runs only on x86-64. Microsoft doesn't support it under emulation, such as Rosetta 2 on Apple silicon or Prism on Windows on Arm. On those machines, run only the unit tests, as described in [testing.md](testing.md#run-the-tests).
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `compose.yml` | Docker Compose file for running the API and the frontend together |
+| `compose.yml` | Docker Compose file for running SQL Server, the API and the frontend together |
+| `.env.example` | Template for `.env`, which holds the SQL Server password for Compose |
+| `dotnet-tools.json` | Local .NET tools, here `dotnet-ef` for EF Core migrations |
 | `api/Tides.slnx` | Solution for the API and its tests |
 | `api/src/Tides.Api` | .NET 10 minimal API |
 | `api/tests/Tides.Api.Tests` | xUnit v3 unit tests, run on Microsoft.Testing.Platform |
@@ -22,13 +24,15 @@ The SQL Server image runs only on x86-64. Microsoft doesn't support it under emu
 
 ## Run with Docker Compose
 
+Compose needs a password for SQL Server. Copy `.env.example` to `.env` in the repository root and set `MSSQL_SA_PASSWORD`, following the rules in [configuration.md](configuration.md#compose).
+
 From the repository root:
 
 ```shell
 docker compose up --watch
 ```
 
-This builds both images and starts the API and the frontend. The API runs in the Development environment, so the OpenAPI document and Scalar are on.
+This builds the API and frontend images and starts them together with SQL Server. The API runs in the Development environment, so the OpenAPI document and Scalar are on. On the first run, apply the migrations as described under [Database](#database) before you save locations.
 
 | URL | What it is |
 | --- | --- |
@@ -50,11 +54,54 @@ Inside Compose the frontend reaches the API by its service name, through the `AP
 
 Stop with `Ctrl+C`. `docker compose down` removes the containers and the network.
 
-## Run the API
+## Database
 
-From the repository root:
+SQL Server runs in the `mssql` service and keeps its data in the `mssql-data` volume, so locations and imports survive restarts and `docker compose down`. Compose publishes it on `127.0.0.1:1433` for tools that run on the host.
+
+The API does not create or update the schema when it starts. Apply the migrations from the repository root after the first start, and again when a new migration arrives:
 
 ```shell
+dotnet tool restore
+dotnet ef database update --project api/src/Tides.Api
+```
+
+`dotnet ef` runs on the host, so it reads the connection string from user secrets. Set it once as described under `ConnectionStrings:Tides` in [configuration.md](configuration.md#api).
+
+### Add a migration
+
+After changing an entity or `TidesDbContext`, add a migration from the repository root:
+
+```shell
+dotnet ef migrations add <Name> --project api/src/Tides.Api --output-dir Data/Migrations
+```
+
+The migration files go into `api/src/Tides.Api/Data/Migrations` and are committed with the change that needs them.
+
+### Reset the database
+
+To start from an empty database, remove the containers together with the `mssql-data` volume, start the stack again and apply the migrations:
+
+```shell
+docker compose down -v
+docker compose up --watch
+dotnet ef database update --project api/src/Tides.Api
+```
+
+`docker compose up` returns only when you stop it, so run `dotnet ef` in a second terminal once SQL Server has started.
+
+With the stack running, you can instead drop and recreate only the database:
+
+```shell
+dotnet ef database drop --force --project api/src/Tides.Api
+dotnet ef database update --project api/src/Tides.Api
+```
+
+## Run the API
+
+The API needs SQL Server and the connection string in user secrets, as described under [Database](#database). To run SQL Server without the other services, start only the `mssql` service, then the API, from the repository root:
+
+```shell
+docker compose up -d mssql
 dotnet run --project api/src/Tides.Api
 ```
 
@@ -66,13 +113,7 @@ The API listens on `http://localhost:8080` and runs in the Development environme
 dotnet test api/Tides.slnx
 ```
 
-`global.json` switches `dotnet test` to Microsoft.Testing.Platform.
-
-The integration tests start SQL Server in a Docker container, so Docker must be running. The first run pulls the SQL Server image, which takes a few minutes. To run only the unit tests, without Docker:
-
-```shell
-dotnet test api/tests/Tides.Api.Tests
-```
+The integration tests need Docker. [testing.md](testing.md) describes how the tests are organized and how to run only some of them.
 
 ## Run the frontend
 

@@ -1,6 +1,6 @@
 # API
 
-The API serves JSON over HTTP. Endpoints are versioned under `/v1`, and none of them require authentication. They only read data that Kartverket publishes openly under CC BY 4.0, so there is nothing to protect.
+The API serves JSON over HTTP. Endpoints are versioned under `/v1`. Most of them read tide data that Kartverket publishes openly under CC BY 4.0. The location and import endpoints also save and delete locations and their imported tide data. None of the endpoints require authentication.
 
 When run locally, the API listens on `http://localhost:8080`. See [development.md](development.md) for how to start it.
 
@@ -12,6 +12,9 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | `GET /v1/stations` | Kartverket's permanent tide stations |
 | `GET /v1/stations/{code}/tides` | High and low tides at a station for a range of UTC days, today and tomorrow by default |
 | `GET /v1/stations/{code}/water-level` | The latest observed water level at a station |
+| `POST /v1/locations` | Saves a location near the coast |
+| `GET /v1/locations` | All saved locations |
+| `DELETE /v1/locations/{id}` | Deletes a location with its imports and their tide data |
 | `GET /v1/locations/{id}/tides` | High and low tides at a saved location, with the same range as for stations |
 | `GET /v1/locations/{id}/water-level` | An estimated water level at a saved location, based on the nearest station |
 | `POST /v1/locations/{id}/imports` | Imports a location's tides for a range into the database, skipping what is already imported |
@@ -32,6 +35,34 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 ```
 
 The API fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours.
+
+## Locations
+
+A location is a named position near the coast, saved in the database. Its tides and water level come from the location endpoints under [Tides](#tides) and [Water level](#water-level-at-a-location), and imports store its tides in the database.
+
+`POST /v1/locations` saves a location.
+
+```json
+{ "name": "Kjerringøy", "latitude": 67.52, "longitude": 14.76 }
+```
+
+`name` is required, at most 100 characters and not only whitespace. `latitude` is from -90 to 90 and `longitude` from -180 to 180, in decimal degrees. Before saving, the API asks Kartverket for the predicted levels at the position for the next hour. Kartverket has no tide data far from the sea, so when it returns none, the API answers `422 Unprocessable Entity` with the title `Too far from the coast.` and saves nothing. Otherwise the response is `201 Created` with the saved location.
+
+```json
+{ "id": 7, "name": "Kjerringøy", "latitude": 67.52, "longitude": 14.76 }
+```
+
+`GET /v1/locations` returns all saved locations in the same shape, ordered by name.
+
+```json
+{
+  "locations": [
+    { "id": 7, "name": "Kjerringøy", "latitude": 67.52, "longitude": 14.76 }
+  ]
+}
+```
+
+`DELETE /v1/locations/{id}` deletes a location together with its imports and their tide data, and returns `204 No Content`.
 
 ## Tides
 
@@ -156,9 +187,11 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |
 | `404 Not Found` | The location id is unknown. The title is `Location not found.` |
 | `404 Not Found` | Kartverket has no tide data for the location. The title is `No tide data for this location.` |
+| `400 Bad Request` | A location's `name` is missing, only whitespace or longer than 100 characters, or `latitude` or `longitude` is missing or out of range. The field is listed under `errors` |
+| `422 Unprocessable Entity` | Kartverket has no tide data at a new location's position. The title is `Too far from the coast.` |
 | `400 Bad Request` | An import's `from` or `to` is missing, `to` is not after `from`, or the range is longer than 31 days. The field is listed under `errors` |
 | `404 Not Found` | No station is within 50 km of the location, or the nearest one has no water level from the last 30 minutes. The title is `No water level estimate for this location.` |
-| `404 Not Found` | The import id is unknown |
+| `404 Not Found` | `DELETE /v1/locations/{id}` or `DELETE /v1/imports/{id}` has an unknown id |
 | `409 Conflict` | Imports already cover the whole range. The title is `Range already imported.` |
 | `502 Bad Gateway` | Kartverket's Tide API fails, times out or returns a response the API cannot read |
 
