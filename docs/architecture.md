@@ -71,7 +71,7 @@ flowchart TB
 
 | Container | Role |
 | --- | --- |
-| React app | Shows the map and Kartverket's tide stations as markers. Tapping a station opens a card with its latest measured water level and its high and low tides, in the browser's time zone. The tides start with today and tomorrow, and scrolling to either end of the strip loads the 7 days before or after. Loads map tiles directly and fetches stations, tides and water levels from the API. |
+| React app | Shows the map with Kartverket's tide stations as round markers and saved locations as square markers. Tapping a marker opens a card with the water level and the high and low tides, in the browser's time zone. A station shows its latest measured level, and a location shows a level estimated from the nearest station. The tides start with today and tomorrow, and scrolling to either end of the strip loads the 7 days before or after. Loads map tiles directly and fetches stations, locations, tides and water levels from the API. |
 | Vite dev server | Serves the React app in development and proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. |
 | API | Serves the station list, each station's high and low tides and its latest measured water level as JSON. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches a station's tides on the first request for that station each UTC day and keeps them in memory for the rest of that day. Keeps a station's water level in memory for 5 minutes. |
 
