@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
+using Tides.Api.Http;
 using Tides.Api.Locations;
 using Tides.Api.Stations;
 
@@ -34,7 +35,7 @@ public static class TideEndpoints
         return routes;
     }
 
-    private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetStationTidesAsync(
+    private static async Task<Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult>> GetStationTidesAsync(
         string code,
         DateOnly? from,
         [Range(1, MaxDays)] int? days,
@@ -43,6 +44,11 @@ public static class TideEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        if (DayRangeValidation.Validate(from, days ?? DefaultDays) is { } invalidRange)
+        {
+            return invalidRange;
+        }
+
         var station = await stationService.GetStationAsync(code, cancellationToken);
 
         if (station is null)
@@ -66,7 +72,7 @@ public static class TideEndpoints
         return ToResult(snapshot, context, "No tide data for this station.", cacheControl);
     }
 
-    private static async Task<Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
+    private static async Task<Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult>> GetLocationTidesAsync(
         int id,
         DateOnly? from,
         [Range(1, MaxDays)] int? days,
@@ -75,6 +81,11 @@ public static class TideEndpoints
         HttpContext context,
         CancellationToken cancellationToken)
     {
+        if (DayRangeValidation.Validate(from, days ?? DefaultDays) is { } invalidRange)
+        {
+            return invalidRange;
+        }
+
         var location = await locationService.GetLocationAsync(id, cancellationToken);
 
         if (location is null)
@@ -90,7 +101,7 @@ public static class TideEndpoints
         return ToResult(snapshot, context, "No tide data for this location.", cacheControl);
     }
 
-    private static Results<Ok<TidesResponse>, ProblemHttpResult, StatusCodeHttpResult> ToResult(
+    private static Results<Ok<TidesResponse>, ValidationProblem, ProblemHttpResult, StatusCodeHttpResult> ToResult(
         TidesSnapshot snapshot,
         HttpContext context,
         string noDataTitle,
@@ -104,19 +115,11 @@ public static class TideEndpoints
         context.Response.GetTypedHeaders().CacheControl = cacheControl;
         context.Response.Headers.ETag = snapshot.ETag;
 
-        if (MatchesETag(context.Request, snapshot.ETag))
+        if (ETags.Matches(context.Request, snapshot.ETag))
         {
             return TypedResults.StatusCode(StatusCodes.Status304NotModified);
         }
 
         return TypedResults.Ok(snapshot.Response);
-    }
-
-    private static bool MatchesETag(HttpRequest request, string eTag)
-    {
-        var current = new EntityTagHeaderValue(eTag);
-
-        return request.GetTypedHeaders().IfNoneMatch.Any(tag =>
-            tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison: false));
     }
 }

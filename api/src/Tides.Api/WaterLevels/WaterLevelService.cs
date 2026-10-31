@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.Extensions.Caching.Hybrid;
+using Tides.Api.Http;
 using Tides.Api.Kartverket;
 using Tides.Api.Locations;
 using Tides.Api.Stations;
@@ -36,7 +35,7 @@ public sealed class WaterLevelService(
                 ? null
                 : new WaterLevelResponse(station.Code, "UTC", "cm", "CD", observation.Time, observation.LevelCm);
 
-            return new WaterLevelSnapshot(response, ComputeETag(response));
+            return new WaterLevelSnapshot(response, ETags.Compute(response));
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
@@ -49,7 +48,7 @@ public sealed class WaterLevelService(
         {
             var response = await EstimateWaterLevelAsync(location, nearbyStation, ct);
 
-            return new EstimatedWaterLevelSnapshot(response, ComputeETag(response));
+            return new EstimatedWaterLevelSnapshot(response, ETags.Compute(response));
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
@@ -109,11 +108,5 @@ public sealed class WaterLevelService(
         var newest = observations.LastOrDefault();
 
         return newest is null || now - newest.Time > MaxAge ? null : newest;
-    }
-
-    private static string ComputeETag<T>(T response)
-    {
-        var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));
-        return $"\"{Convert.ToHexString(hash)}\"";
     }
 }

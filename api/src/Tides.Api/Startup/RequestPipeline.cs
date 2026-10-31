@@ -1,6 +1,7 @@
 using Scalar.AspNetCore;
 using Tides.Api.Imports;
 using Tides.Api.Locations;
+using Tides.Api.Samples;
 using Tides.Api.Stations;
 using Tides.Api.Tides;
 using Tides.Api.WaterLevels;
@@ -35,6 +36,7 @@ public static class RequestPipeline
         v1.MapStationEndpoints();
         v1.MapTideEndpoints();
         v1.MapWaterLevelEndpoints();
+        v1.MapSampleEndpoints();
         v1.MapLocationEndpoints();
         v1.MapImportEndpoints();
 

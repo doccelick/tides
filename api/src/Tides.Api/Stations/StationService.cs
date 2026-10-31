@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.Extensions.Caching.Hybrid;
+using Tides.Api.Http;
 using Tides.Api.Kartverket;
 
 namespace Tides.Api.Stations;
@@ -21,7 +20,7 @@ public sealed class StationService(HybridCache cache, KartverketClient kartverke
             var response = new StationsResponse(
                 [.. stations.Select(s => new StationResponse(s.Code, s.Name, s.Latitude, s.Longitude))]);
 
-            return new StationsSnapshot(response, ComputeETag(response));
+            return new StationsSnapshot(response, ETags.Compute(response));
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
@@ -46,11 +45,5 @@ public sealed class StationService(HybridCache cache, KartverketClient kartverke
             .MinBy(s => s.DistanceKm);
 
         return nearest is not null && nearest.DistanceKm <= maxDistanceKm ? nearest : null;
-    }
-
-    private static string ComputeETag(StationsResponse response)
-    {
-        var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));
-        return $"\"{Convert.ToHexString(hash)}\"";
     }
 }

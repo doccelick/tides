@@ -1,9 +1,8 @@
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Tides.Api.Data;
+using Tides.Api.Http;
 using Tides.Api.Imports;
 using Tides.Api.Kartverket;
 using Tides.Api.Locations;
@@ -14,6 +13,7 @@ public sealed class TideService(
     HybridCache cache,
     KartverketClient kartverket,
     TidesDbContext database,
+    ImportService importService,
     TimeProvider timeProvider)
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new()
@@ -42,7 +42,7 @@ public sealed class TideService(
     {
         var (from, to) = GetRange(firstDay, days);
 
-        if (!await IsCoveredByImportsAsync(location.Id, from, to, cancellationToken))
+        if (!await importService.CoversRangeAsync(location.Id, from, to, cancellationToken))
         {
             return await GetLiveTidesAsync(location.Latitude, location.Longitude, from, to, cancellationToken);
         }
@@ -75,21 +75,6 @@ public sealed class TideService(
         }, CacheOptions, cancellationToken: cancellationToken);
     }
 
-    private async Task<bool> IsCoveredByImportsAsync(
-        int locationId,
-        DateTimeOffset from,
-        DateTimeOffset to,
-        CancellationToken cancellationToken)
-    {
-        var imports = await database.Imports
-            .AsNoTracking()
-            .Where(i => i.LocationId == locationId && i.From < to && from < i.To)
-            .Select(i => new { i.From, i.To })
-            .ToListAsync(cancellationToken);
-
-        return ImportGaps.Find(from, to, imports.Select(i => (i.From, i.To))).Count == 0;
-    }
-
     private async Task<IReadOnlyList<TideResponse>> GetStoredTidesAsync(
         int locationId,
         DateTimeOffset from,
@@ -120,12 +105,6 @@ public sealed class TideService(
     {
         var response = new TidesResponse("UTC", "cm", "CD", source, tides);
 
-        return new TidesSnapshot(response, ComputeETag(response));
-    }
-
-    private static string ComputeETag(TidesResponse response)
-    {
-        var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(response));
-        return $"\"{Convert.ToHexString(hash)}\"";
+        return new TidesSnapshot(response, ETags.Compute(response));
     }
 }

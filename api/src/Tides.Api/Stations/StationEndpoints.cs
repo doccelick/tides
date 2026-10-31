@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
+using Tides.Api.Http;
 
 namespace Tides.Api.Stations;
 
@@ -31,19 +32,11 @@ public static class StationEndpoints
         };
         context.Response.Headers.ETag = snapshot.ETag;
 
-        if (MatchesETag(context.Request, snapshot.ETag))
+        if (ETags.Matches(context.Request, snapshot.ETag))
         {
             return TypedResults.StatusCode(StatusCodes.Status304NotModified);
         }
 
         return TypedResults.Ok(snapshot.Response);
-    }
-
-    private static bool MatchesETag(HttpRequest request, string eTag)
-    {
-        var current = new EntityTagHeaderValue(eTag);
-
-        return request.GetTypedHeaders().IfNoneMatch.Any(tag =>
-            tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison: false));
     }
 }

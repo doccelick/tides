@@ -71,6 +71,20 @@ export type ProblemDetails = {
   instance?: null | string;
 };
 
+export type SampleResponse = {
+  time: string;
+  levelCm: number;
+};
+
+export type SamplesResponse = {
+  locationId: number;
+  timeZone: string;
+  unit: string;
+  reference: string;
+  intervalMinutes: number;
+  samples: Array<SampleResponse>;
+};
+
 export type StationResponse = {
   code: string;
   name: string;
@@ -273,6 +287,42 @@ export type GetLocationWaterLevelResponses = {
 
 export type GetLocationWaterLevelResponse =
   GetLocationWaterLevelResponses[keyof GetLocationWaterLevelResponses];
+
+export type GetLocationSamplesData = {
+  body?: never;
+  path: {
+    id: number;
+  };
+  query?: {
+    from?: string;
+    days?: number;
+    interval?: 10 | 60;
+  };
+  url: "/v1/locations/{id}/samples";
+};
+
+export type GetLocationSamplesErrors = {
+  /**
+   * Bad Request
+   */
+  400: HttpValidationProblemDetails;
+  /**
+   * Not Found
+   */
+  404: ProblemDetails;
+};
+
+export type GetLocationSamplesError = GetLocationSamplesErrors[keyof GetLocationSamplesErrors];
+
+export type GetLocationSamplesResponses = {
+  /**
+   * OK
+   */
+  200: SamplesResponse;
+};
+
+export type GetLocationSamplesResponse =
+  GetLocationSamplesResponses[keyof GetLocationSamplesResponses];
 
 export type GetLocationsData = {
   body?: never;

@@ -16,13 +16,7 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         DateTimeOffset to,
         CancellationToken cancellationToken = default)
     {
-        var stored = await database.Imports
-            .AsNoTracking()
-            .Where(i => i.LocationId == location.Id && i.From < to && from < i.To)
-            .Select(i => new { i.From, i.To })
-            .ToListAsync(cancellationToken);
-
-        var gaps = ImportGaps.Find(from, to, stored.Select(i => (i.From, i.To)));
+        var gaps = await FindGapsAsync(location.Id, from, to, cancellationToken);
 
         if (gaps.Count == 0)
         {
@@ -128,6 +122,33 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
             .ExecuteDeleteAsync(cancellationToken);
 
         return deletedRows > 0;
+    }
+
+    // Returns true when the location's imports together cover all of [from, to).
+    public async Task<bool> CoversRangeAsync(
+        int locationId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken = default)
+    {
+        var gaps = await FindGapsAsync(locationId, from, to, cancellationToken);
+
+        return gaps.Count == 0;
+    }
+
+    private async Task<IReadOnlyList<(DateTimeOffset From, DateTimeOffset To)>> FindGapsAsync(
+        int locationId,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken)
+    {
+        var stored = await database.Imports
+            .AsNoTracking()
+            .Where(i => i.LocationId == locationId && i.From < to && from < i.To)
+            .Select(i => new { i.From, i.To })
+            .ToListAsync(cancellationToken);
+
+        return ImportGaps.Find(from, to, stored.Select(i => (i.From, i.To)));
     }
 
     private static TideEntryType GetTideEntryType(TideType tideType) => tideType switch

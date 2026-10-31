@@ -17,6 +17,7 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | `DELETE /v1/locations/{id}` | Deletes a location with its imports and their tide data |
 | `GET /v1/locations/{id}/tides` | High and low tides at a saved location, with the same range as for stations |
 | `GET /v1/locations/{id}/water-level` | An estimated water level at a saved location, based on the nearest station |
+| `GET /v1/locations/{id}/samples` | Predicted water levels every 10 or 60 minutes at a saved location, read from its imports |
 | `POST /v1/locations/{id}/imports` | Imports a location's tides for a range into the database, skipping what is already imported |
 | `GET /v1/locations/{id}/imports` | A location's imports |
 | `DELETE /v1/imports/{id}` | Deletes an import and its tide data |
@@ -38,7 +39,7 @@ The API fetches the station list from Kartverket on the first request and keeps 
 
 ## Locations
 
-A location is a named position near the coast, saved in the database. Its tides and water level come from the location endpoints under [Tides](#tides) and [Water level](#water-level-at-a-location), and imports store its tides in the database.
+A location is a named position near the coast, saved in the database. Its tides and water level come from the location endpoints under [Tides](#tides) and [Water level](#water-level-at-a-location), and imports store its tides in the database. [Samples](#samples) reads the imported levels as an evenly spaced series.
 
 `POST /v1/locations` saves a location.
 
@@ -140,9 +141,39 @@ The API returns a level only if it was at most 30 minutes old when the API fetch
 
 The API keeps a location's estimate in memory for 5 minutes, like a station's level.
 
+## Samples
+
+`GET /v1/locations/{id}/samples` returns a saved location's predicted water level at evenly spaced times for a range of days, counted in UTC. It reads only from the location's imports and never calls Kartverket.
+
+| Query parameter | Meaning | Default |
+| --- | --- | --- |
+| `from` | First day of the range as `YYYY-MM-DD`, in the past or the future | Today (UTC) |
+| `days` | Number of days in the range, from 1 to 31 | `2` |
+| `interval` | Minutes between samples, `10` or `60` | `10` |
+
+For example, `GET /v1/locations/7/samples?from=2026-11-01&days=7&interval=60` returns one level per hour from 1 November up to the start of 8 November.
+
+```json
+{
+  "locationId": 7,
+  "timeZone": "UTC",
+  "unit": "cm",
+  "reference": "CD",
+  "intervalMinutes": 60,
+  "samples": [
+    { "time": "2026-11-01T00:00:00+00:00", "levelCm": 248.0 },
+    { "time": "2026-11-01T01:00:00+00:00", "levelCm": 228.0 }
+  ]
+}
+```
+
+Times are in UTC, and levels are in centimetres above chart datum, as for tides. The first sample is at midnight UTC on the first day. Imports store a predicted level every 10 minutes, so a 60-minute interval returns every sixth stored level, without averaging. A 31-day range has 4,464 samples at 10 minutes and 744 at 60 minutes.
+
+When the location's imports don't cover the whole range, the API returns `404 Not Found` and does not fetch the missing part from Kartverket. `GET /v1/locations/{id}/imports` shows which ranges are imported.
+
 ## Imports
 
-An import stores a location's tides for a range of time in the database, so `GET /v1/locations/{id}/tides` can read them without calling Kartverket. It holds the high and low tides and the predicted level every 10 minutes.
+An import stores a location's tides for a range of time in the database, so `GET /v1/locations/{id}/tides` and `GET /v1/locations/{id}/samples` can read them without calling Kartverket. It holds the high and low tides and the predicted level every 10 minutes.
 
 `POST /v1/locations/{id}/imports` imports the range from `from` up to `to`, where `from` is included and `to` is not. The range can be in the past or the future and at most 31 days long.
 
@@ -173,7 +204,7 @@ The API imports only the parts of the range that no earlier import for the locat
 
 ## Caching
 
-`GET /v1/stations` and `GET /v1/stations/{code}/tides` respond with `Cache-Control: public, max-age=3600` and an `ETag`. `GET /v1/locations/{id}/tides` responds with `Cache-Control: no-cache` and an `ETag`, because adding or deleting an import can change its response, so clients check with the API each time before they reuse it. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
+`GET /v1/stations` and `GET /v1/stations/{code}/tides` respond with `Cache-Control: public, max-age=3600` and an `ETag`. `GET /v1/locations/{id}/tides` and `GET /v1/locations/{id}/samples` respond with `Cache-Control: no-cache` and an `ETag`, because adding or deleting an import can change their responses, so clients check with the API each time before they reuse it. Both water level endpoints change more often and respond with `Cache-Control: public, max-age=300` and an `ETag`. A client that sends the `ETag` back in `If-None-Match` gets `304 Not Modified` with no body while the data is unchanged.
 
 ## Authentication
 
@@ -185,7 +216,7 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 
 | Status | When |
 | --- | --- |
-| `400 Bad Request` | `from` is not a valid date, or `days` is not a whole number from 1 to 31. An invalid `days` value is listed under `errors` |
+| `400 Bad Request` | `from` is not a valid date, `days` is not a whole number from 1 to 31, `interval` is not `10` or `60`, or the range ends after 9999-12-30. An invalid `days` or `interval` value is listed under `errors`, and a range that ends too late under `from` |
 | `401 Unauthorized` | A request to save or delete has no access token, or the token is not valid for the API |
 | `403 Forbidden` | A request to save or delete has a valid token without the `Admin` role |
 | `404 Not Found` | The station code is unknown. The title is `Station not found.` |
@@ -193,6 +224,7 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | `404 Not Found` | Kartverket has no water level for the station from the last 30 minutes. The title is `No water level for this station.` |
 | `404 Not Found` | The location id is unknown. The title is `Location not found.` |
 | `404 Not Found` | Kartverket has no tide data for the location. The title is `No tide data for this location.` |
+| `404 Not Found` | The location's imports don't cover the whole range of a samples request. The title is `No imported water levels for this range.` |
 | `400 Bad Request` | A location's `name` is missing, only whitespace or longer than 100 characters, or `latitude` or `longitude` is missing or out of range. The field is listed under `errors` |
 | `422 Unprocessable Entity` | Kartverket has no tide data at a new location's position. The title is `Too far from the coast.` |
 | `400 Bad Request` | An import's `from` or `to` is missing, `to` is not after `from`, or the range is longer than 31 days. The field is listed under `errors` |

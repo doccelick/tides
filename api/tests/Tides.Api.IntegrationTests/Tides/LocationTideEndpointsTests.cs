@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
@@ -146,5 +147,19 @@ public class LocationTideEndpointsTests : IAsyncDisposable
         Assert.Equal(TideSource.Kartverket, response.Source);
         Assert.Single(response.Tides);
         Assert.Equal(requestsAfterImport + 1, _handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task GetLocationTides_RangeEndingAfterLastRepresentableDay_ReturnsValidationProblem()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var location = await _factory.AddLocationAsync(cancellationToken);
+
+        var response = await _client.GetAsync($"/v1/locations/{location.Id}/tides?from=9999-12-31", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(cancellationToken);
+        Assert.Contains("from", body!.Errors.Keys);
+        Assert.Equal(0, _handler.RequestCount);
     }
 }
