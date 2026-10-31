@@ -31,5 +31,13 @@ export function useLocations() {
     return () => controller.abort();
   }, []);
 
-  return { locations, failed };
+  function add(location: LocationResponse) {
+    setLocations((current) => [...current, location]);
+  }
+
+  function remove(locationId: number) {
+    setLocations((current) => current.filter((location) => location.id !== locationId));
+  }
+
+  return { locations, failed, add, remove };
 }

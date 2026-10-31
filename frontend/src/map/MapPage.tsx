@@ -1,35 +1,55 @@
 import { useRef, useState } from "react";
-import Map, { Layer, Source, Marker } from "react-map-gl/maplibre";
+import Map, { Layer, Source, Marker, Popup } from "react-map-gl/maplibre";
 import { setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Button } from "@/components/ui/button";
+import { LocationImports } from "@/imports/LocationImports";
+import { DeleteLocationButton } from "./DeleteLocationButton";
 import { kartverketSource, type BaseLayer } from "./kartverketSource";
+import { NewLocationCard } from "./NewLocationCard";
 import { TideCard } from "./TideCard";
 import { useLocations } from "./useLocations";
+import { useLongPress, type PressPosition } from "./useLongPress";
 import { useStations } from "./useStations";
 
 // Bundlers need an explicit worker URL: https://maplibre.org/maplibre-gl-js/docs/#installation
 setWorkerUrl(workerUrl);
 
-interface Selected {
-  name: string;
-  path: string;
-}
+// The card under the map: the tides at a station or location, or the form for a new location.
+type Panel =
+  | { kind: "tides"; name: string; path: string; locationId?: number }
+  | { kind: "new-location"; position: PressPosition };
 
 export function MapPage() {
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("topo");
-  const [selected, setSelected] = useState<Selected | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(null);
+  // Where a long press asks "Add location?".
+  const [pressed, setPressed] = useState<PressPosition | null>(null);
   const selectedMarkerRef = useRef<HTMLButtonElement | null>(null);
   const isTopo = baseLayer === "topo";
   const isNautical = baseLayer === "nautical";
   const { stations, failed: stationsFailed } = useStations();
-  const { locations, failed: locationsFailed } = useLocations();
+  const {
+    locations,
+    failed: locationsFailed,
+    add: addLocation,
+    remove: removeLocation,
+  } = useLocations();
+  const longPress = useLongPress({ onLongPress: setPressed, onClick: () => setPressed(null) });
+  const [tidesVersion, setTidesVersion] = useState(0);
+
+  function openTides(button: HTMLButtonElement, tides: Panel) {
+    selectedMarkerRef.current = button;
+    setPressed(null);
+    setPanel(tides);
+  }
 
   return (
     <div className="flex h-svh flex-col">
       <div className="relative min-h-0 flex-1">
         <Map
+          {...longPress}
           mapStyle="https://tiles.openfreemap.org/styles/liberty"
           initialViewState={{
             bounds: [
@@ -49,10 +69,13 @@ export function MapPage() {
               <button
                 type="button"
                 aria-label={station.name}
-                onClick={(event) => {
-                  selectedMarkerRef.current = event.currentTarget;
-                  setSelected({ name: station.name, path: `/v1/stations/${station.code}` });
-                }}
+                onClick={(event) =>
+                  openTides(event.currentTarget, {
+                    kind: "tides",
+                    name: station.name,
+                    path: `/v1/stations/${station.code}`,
+                  })
+                }
                 className="flex size-11 cursor-pointer items-center justify-center"
               >
                 <span className="size-3 rounded-full bg-primary ring-2 ring-white" />
@@ -64,16 +87,48 @@ export function MapPage() {
               <button
                 type="button"
                 aria-label={location.name}
-                onClick={(event) => {
-                  selectedMarkerRef.current = event.currentTarget;
-                  setSelected({ name: location.name, path: `/v1/locations/${location.id}` });
-                }}
+                onClick={(event) =>
+                  openTides(event.currentTarget, {
+                    kind: "tides",
+                    name: location.name,
+                    path: `/v1/locations/${location.id}`,
+                    locationId: location.id,
+                  })
+                }
                 className="flex size-11 cursor-pointer items-center justify-center"
               >
                 <span className="size-3 rounded-xs bg-chart-2 ring-2 ring-white" />
               </button>
             </Marker>
           ))}
+          {panel?.kind === "new-location" && (
+            <Marker latitude={panel.position.latitude} longitude={panel.position.longitude}>
+              <span className="block size-3 rounded-xs border-2 border-chart-2 bg-white" />
+            </Marker>
+          )}
+          {pressed && (
+            <Popup
+              latitude={pressed.latitude}
+              longitude={pressed.longitude}
+              anchor="bottom"
+              closeButton={false}
+              closeOnClick={false}
+            >
+              <Button
+                className="h-11"
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setPressed(null);
+                }}
+                onClick={() => {
+                  setPanel({ kind: "new-location", position: pressed });
+                  setPressed(null);
+                }}
+              >
+                Add location?
+              </Button>
+            </Popup>
+          )}
         </Map>
         <div className="absolute top-3 left-3 flex gap-2">
           <Button
@@ -106,15 +161,49 @@ export function MapPage() {
           )}
         </div>
       </div>
-      {selected && (
+      {panel?.kind === "tides" && (
         <TideCard
-          key={selected.path}
-          name={selected.name}
-          path={selected.path}
+          key={panel.path}
+          name={panel.name}
+          path={panel.path}
+          tidesVersion={tidesVersion}
           onClose={() => {
-            setSelected(null);
+            setPanel(null);
             selectedMarkerRef.current?.focus({ preventScroll: true });
           }}
+        >
+          {panel.locationId !== undefined && (
+            <>
+              <LocationImports
+                locationId={panel.locationId}
+                onChanged={() => setTidesVersion((current) => current + 1)}
+              />
+              <DeleteLocationButton
+                locationId={panel.locationId}
+                name={panel.name}
+                onDeleted={(locationId) => {
+                  removeLocation(locationId);
+                  setPanel(null);
+                }}
+              />
+            </>
+          )}
+        </TideCard>
+      )}
+      {panel?.kind === "new-location" && (
+        <NewLocationCard
+          key={`${panel.position.latitude},${panel.position.longitude}`}
+          position={panel.position}
+          onLocationSaved={addLocation}
+          onCreated={(location) => {
+            setPanel({
+              kind: "tides",
+              name: location.name,
+              path: `/v1/locations/${location.id}`,
+              locationId: location.id,
+            });
+          }}
+          onClose={() => setPanel(null)}
         />
       )}
     </div>

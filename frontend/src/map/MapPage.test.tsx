@@ -1,22 +1,32 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { MapPage } from "./MapPage";
-import type { LocationResponse, StationResponse, TidesResponse } from "@/api/generated";
+import type {
+  ImportsResponse,
+  LocationResponse,
+  StationResponse,
+  TidesResponse,
+} from "@/api/generated";
+
+// The props the page last passed to the map, so tests can send map events.
+const map = vi.hoisted(() => ({ props: {} as Record<string, unknown> }));
 
 vi.mock("react-map-gl/maplibre", () => ({
-  default: ({
-    children,
-    attributionControl,
-  }: {
+  default: (props: {
     children: React.ReactNode;
     attributionControl: { customAttribution: string };
-  }) => (
-    <div data-testid="map" data-attribution={attributionControl.customAttribution}>
-      {children}
-    </div>
-  ),
+  }) => {
+    map.props = props;
+    return (
+      <div data-testid="map" data-attribution={props.attributionControl.customAttribution}>
+        {props.children}
+      </div>
+    );
+  },
   Marker: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Popup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Source: ({ tiles }: { tiles: string[] }) => (
     <div data-testid="kartverket-source" data-tiles={tiles[0]} />
   ),
@@ -48,6 +58,7 @@ describe("MapPage", () => {
         if (url.endsWith("/water-level"))
           return Promise.resolve(new Response(null, { status: 404 }));
         if (url === "/v1/locations") return Promise.resolve(Response.json({ locations }));
+        if (url.endsWith("/imports")) return Promise.resolve(Response.json({ imports: [] }));
         return Promise.resolve(Response.json({ stations }));
       }),
     );
@@ -93,6 +104,7 @@ describe("MapPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Bergen" }));
     expect(screen.getByRole("region", { name: "Bergen" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
@@ -106,6 +118,7 @@ describe("MapPage", () => {
     await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
 
     expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Imports" })).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining("/v1/locations/3/tides?"),
       expect.anything(),
@@ -121,6 +134,68 @@ describe("MapPage", () => {
 
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+  });
+
+  describe("adding a location", () => {
+    const created: LocationResponse = { id: 4, name: "Grøtøy", latitude: 67.8, longitude: 14.7 };
+    const imports: ImportsResponse = { imports: [] };
+    const press = {
+      point: { x: 100, y: 100 },
+      lngLat: { lng: 14.7, lat: 67.8 },
+      originalEvent: { button: 0 },
+    } as unknown as MapLayerMouseEvent;
+
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((url: string, init?: RequestInit) => {
+          if (init?.method === "POST" && url === "/v1/locations")
+            return Promise.resolve(Response.json(created, { status: 201 }));
+          if (init?.method === "POST")
+            return Promise.resolve(Response.json(imports, { status: 201 }));
+          if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
+          if (url.endsWith("/water-level"))
+            return Promise.resolve(new Response(null, { status: 404 }));
+          if (url === "/v1/locations") return Promise.resolve(Response.json({ locations: [] }));
+          if (url.endsWith("/imports")) return Promise.resolve(Response.json(imports));
+          return Promise.resolve(Response.json({ stations }));
+        }),
+      );
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    function longPress() {
+      act(() => (map.props.onMouseDown as (event: MapLayerMouseEvent) => void)(press));
+      act(() => vi.advanceTimersByTime(500));
+    }
+
+    it("saves a location from a long press and opens its card", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      render(<MapPage />);
+
+      longPress();
+      await user.click(screen.getByRole("button", { name: "Add location?" }));
+      await user.type(screen.getByRole("textbox", { name: "Name" }), "Grøtøy");
+      await user.click(screen.getByRole("button", { name: "Save and import" }));
+
+      expect(await screen.findByRole("region", { name: "Grøtøy" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Grøtøy" })).toBeInTheDocument();
+    });
+
+    it("closes the popup on a map click", async () => {
+      render(<MapPage />);
+
+      longPress();
+      expect(screen.getByRole("button", { name: "Add location?" })).toBeInTheDocument();
+
+      act(() => (map.props.onMouseDown as (event: MapLayerMouseEvent) => void)(press));
+      act(() => (map.props.onMouseUp as () => void)());
+      act(() => (map.props.onClick as () => void)());
+
+      expect(screen.queryByRole("button", { name: "Add location?" })).not.toBeInTheDocument();
+    });
   });
 
   it("shows a notice when the stations fail to load", async () => {
