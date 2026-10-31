@@ -1,10 +1,11 @@
-import type { AccountInfo } from "@azure/msal-browser";
+import { InteractionRequiredAuthError, type AccountInfo } from "@azure/msal-browser";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAdminToken } from "./getAdminToken";
 
 const msal = vi.hoisted(() => ({
   getAllAccounts: vi.fn(),
   acquireTokenSilent: vi.fn(),
+  acquireTokenRedirect: vi.fn(),
 }));
 
 vi.mock("./authConfig", () => ({ apiScope: "api://tides/access_as_user", msalInstance: msal }));
@@ -22,6 +23,7 @@ describe("getAdminToken", () => {
   beforeEach(() => {
     msal.getAllAccounts.mockReset();
     msal.acquireTokenSilent.mockReset();
+    msal.acquireTokenRedirect.mockReset();
   });
 
   it("returns an access token for the API scope and the admin account", async () => {
@@ -42,10 +44,25 @@ describe("getAdminToken", () => {
     expect(msal.acquireTokenSilent).not.toHaveBeenCalled();
   });
 
-  it("returns nothing when the session has expired", async () => {
+  it("signs in again with a redirect when the session has ended", async () => {
     msal.getAllAccounts.mockReturnValue([admin]);
-    msal.acquireTokenSilent.mockRejectedValue(new Error("interaction_required"));
+    msal.acquireTokenSilent.mockRejectedValue(
+      new InteractionRequiredAuthError("interaction_required", "The session has ended."),
+    );
+
+    await getAdminToken();
+
+    expect(msal.acquireTokenRedirect).toHaveBeenCalledWith({
+      scopes: ["api://tides/access_as_user"],
+      account: admin,
+    });
+  });
+
+  it("returns nothing without a redirect when the token request fails otherwise", async () => {
+    msal.getAllAccounts.mockReturnValue([admin]);
+    msal.acquireTokenSilent.mockRejectedValue(new Error("network_error"));
 
     expect(await getAdminToken()).toBeUndefined();
+    expect(msal.acquireTokenRedirect).not.toHaveBeenCalled();
   });
 });
