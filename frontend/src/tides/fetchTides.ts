@@ -1,13 +1,14 @@
 import type { TideResponse, TidesResponse } from "@/api/generated";
 
-// Returns null when the station has no tide data for the range.
+// `path` is the station or location, for example `/v1/stations/BGO` or `/v1/locations/3`.
+// Returns null when there is no tide data for the range.
 export async function fetchTides(
-  code: string,
+  path: string,
   from: string,
   days: number,
   signal?: AbortSignal,
 ): Promise<TideResponse[] | null> {
-  const response = await fetch(`/v1/stations/${code}/tides?from=${from}&days=${days}`, { signal });
+  const response = await fetch(`${path}/tides?from=${from}&days=${days}`, { signal });
 
   if (response.status === 404) {
     return null;

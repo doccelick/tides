@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import type { WaterLevelResponse } from "@/api/generated";
+import type { EstimatedWaterLevelResponse, WaterLevelResponse } from "@/api/generated";
+
+// Stations return a measured level and locations an estimate.
+type WaterLevel = WaterLevelResponse | EstimatedWaterLevelResponse;
 
 type WaterLevelState =
   | { status: "loading" }
-  | { status: "loaded"; waterLevel: WaterLevelResponse }
+  | { status: "loaded"; waterLevel: WaterLevel }
   | { status: "no-data" }
   | { status: "failed" };
 
-export function useWaterLevel(code: string) {
+export function useWaterLevel(path: string) {
   const [state, setState] = useState<WaterLevelState>({ status: "loading" });
 
   useEffect(() => {
@@ -15,7 +18,7 @@ export function useWaterLevel(code: string) {
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`/v1/stations/${code}/water-level`, {
+        const response = await fetch(`${path}/water-level`, {
           signal: controller.signal,
         });
 
@@ -28,7 +31,7 @@ export function useWaterLevel(code: string) {
           throw new Error(`Water level request failed with ${response.status}`);
         }
 
-        const waterLevel: WaterLevelResponse = await response.json();
+        const waterLevel: WaterLevel = await response.json();
         setState({ status: "loaded", waterLevel });
       } catch (error: unknown) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -41,7 +44,7 @@ export function useWaterLevel(code: string) {
     fetchData();
 
     return () => controller.abort();
-  }, [code]);
+  }, [path]);
 
   return state;
 }

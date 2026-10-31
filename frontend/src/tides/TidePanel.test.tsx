@@ -38,22 +38,22 @@ class VisibleIntersectionObserver {
 describe("TidePanel", () => {
   it("shows the tides when they load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(tides)));
-    render(<TidePanel code="BGO" />);
+    render(<TidePanel path="/v1/stations/BGO" />);
 
     expect(await screen.findByText("High")).toBeInTheDocument();
     expect(screen.getByText("Low")).toBeInTheDocument();
   });
 
-  it("shows a message when the station has no tide data", async () => {
+  it("shows a message when there is no tide data", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
-    render(<TidePanel code="BGO" />);
+    render(<TidePanel path="/v1/stations/BGO" />);
 
-    expect(await screen.findByText("No tide data for this station.")).toBeInTheDocument();
+    expect(await screen.findByText("No tide data for this place.")).toBeInTheDocument();
   });
 
   it("shows a notice when the tides fail to load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 502 })));
-    render(<TidePanel code="BGO" />);
+    render(<TidePanel path="/v1/stations/BGO" />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load tides");
   });
@@ -68,7 +68,7 @@ describe("TidePanel", () => {
         .mockResolvedValueOnce(new Response(null, { status: 404 }))
         .mockResolvedValueOnce(Response.json(laterTides)),
     );
-    render(<TidePanel code="BGO" />);
+    render(<TidePanel path="/v1/stations/BGO" />);
 
     expect(await screen.findByText("231 cm")).toBeInTheDocument();
   });
@@ -84,7 +84,7 @@ describe("TidePanel", () => {
         .mockResolvedValueOnce(new Response(null, { status: 502 }))
         .mockResolvedValueOnce(Response.json(laterTides)),
     );
-    render(<TidePanel code="BGO" />);
+    render(<TidePanel path="/v1/stations/BGO" />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load later tides");
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));

@@ -3,22 +3,25 @@ import { formatTideLevel, formatTideTime } from "./format";
 import { useWaterLevel } from "./useWaterLevel";
 
 interface CurrentLevelProps {
-  code: string;
+  path: string;
 }
 
-export function CurrentLevel({ code }: CurrentLevelProps) {
-  const state = useWaterLevel(code);
+export function CurrentLevel({ path }: CurrentLevelProps) {
+  const state = useWaterLevel(path);
 
   if (state.status === "loading") return <Skeleton className="h-5 w-40" />;
   if (state.status === "no-data") return null;
   if (state.status === "failed") return <p role="alert">Couldn't load water level</p>;
 
+  const { waterLevel } = state;
+  const time = formatTideTime(waterLevel.time);
+
   return (
     <p>
-      <span className="font-semibold tabular-nums">
-        {formatTideLevel(state.waterLevel.levelCm)}
-      </span>{" "}
-      (measured {formatTideTime(state.waterLevel.time)})
+      <span className="font-semibold tabular-nums">{formatTideLevel(waterLevel.levelCm)}</span>{" "}
+      {"stationName" in waterLevel
+        ? `(estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away, ${time})`
+        : `(measured ${time})`}
     </p>
   );
 }

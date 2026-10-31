@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MapPage } from "./MapPage";
-import type { StationResponse, TidesResponse } from "@/api/generated";
+import type { LocationResponse, StationResponse, TidesResponse } from "@/api/generated";
 
 vi.mock("react-map-gl/maplibre", () => ({
   default: ({
@@ -28,6 +28,10 @@ const stations: StationResponse[] = [
   { code: "OSL", name: "Oslo", latitude: 59.9, longitude: 10.7 },
 ];
 
+const locations: LocationResponse[] = [
+  { id: 3, name: "Kjerringøy", latitude: 67.52, longitude: 14.76 },
+];
+
 const tides: TidesResponse = {
   timeZone: "UTC",
   unit: "cm",
@@ -43,6 +47,7 @@ describe("MapPage", () => {
         if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
         if (url.endsWith("/water-level"))
           return Promise.resolve(new Response(null, { status: 404 }));
+        if (url === "/v1/locations") return Promise.resolve(Response.json({ locations }));
         return Promise.resolve(Response.json({ stations }));
       }),
     );
@@ -94,10 +99,41 @@ describe("MapPage", () => {
     expect(screen.getByRole("button", { name: "Bergen" })).toHaveFocus();
   });
 
+  it("opens a location's card with the location's tides", async () => {
+    const user = userEvent.setup();
+    render(<MapPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
+
+    expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/v1/locations/3/tides?"),
+      expect.anything(),
+    );
+  });
+
+  it("replaces an open station card with the location's card", async () => {
+    const user = userEvent.setup();
+    render(<MapPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Bergen" }));
+    await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
+
+    expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
+  });
+
   it("shows a notice when the stations fail to load", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 502 })));
     render(<MapPage />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load stations");
+    expect(await screen.findByText("Couldn't load stations")).toHaveAttribute("role", "alert");
+  });
+
+  it("shows a notice when the locations fail to load", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 502 })));
+    render(<MapPage />);
+
+    expect(await screen.findByText("Couldn't load locations")).toHaveAttribute("role", "alert");
   });
 });
