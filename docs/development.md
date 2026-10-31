@@ -32,7 +32,7 @@ From the repository root:
 docker compose up --watch
 ```
 
-This builds the API and frontend images and starts them together with SQL Server. The API runs in the Development environment, so the OpenAPI document and Scalar are on. On the first run, apply the migrations as described under [Database](#database) before you save locations.
+This builds the API and frontend images and starts them together with SQL Server. The API runs in the Development environment, so the OpenAPI document and Scalar are on. Before the API starts, the `migrate` service brings the database schema up to date, as described under [Database](#database).
 
 | URL | What it is |
 | --- | --- |
@@ -58,7 +58,15 @@ Stop with `Ctrl+C`. `docker compose down` removes the containers and the network
 
 SQL Server runs in the `mssql` service and keeps its data in the `mssql-data` volume, so locations and imports survive restarts and `docker compose down`. Compose publishes it on `127.0.0.1:1433` for tools that run on the host.
 
-The API does not create or update the schema when it starts. Apply the migrations from the repository root after the first start, and again when a new migration arrives:
+The API does not create or update the schema itself. Compose does it with the `migrate` service:
+
+1. `mssql` reports healthy once SQL Server accepts logins.
+2. `migrate` runs an EF Core migration bundle, built from the `migrate` stage of `api/Dockerfile`, which creates the `Tides` database if needed and applies the missing migrations. It then exits.
+3. `api` starts only after `migrate` has exited successfully.
+
+If `migrate` fails, the API does not start. `docker compose logs migrate` shows why.
+
+When the API runs outside Compose, apply the migrations from the repository root instead:
 
 ```shell
 dotnet tool restore
@@ -77,23 +85,26 @@ dotnet ef migrations add <Name> --project api/src/Tides.Api --output-dir Data/Mi
 
 The migration files go into `api/src/Tides.Api/Data/Migrations` and are committed with the change that needs them.
 
+`--watch` does not run `migrate` again. To apply a new migration while the stack runs, rebuild and run it from a second terminal:
+
+```shell
+docker compose up --build migrate
+```
+
 ### Reset the database
 
-To start from an empty database, remove the containers together with the `mssql-data` volume, start the stack again and apply the migrations:
+To start from an empty database, remove the containers together with the `mssql-data` volume and start the stack again. `migrate` creates the database and applies every migration.
 
 ```shell
 docker compose down -v
 docker compose up --watch
-dotnet ef database update --project api/src/Tides.Api
 ```
 
-`docker compose up` returns only when you stop it, so run `dotnet ef` in a second terminal once SQL Server has started.
-
-With the stack running, you can instead drop and recreate only the database:
+With the stack running, you can instead drop only the database and run `migrate` again:
 
 ```shell
 dotnet ef database drop --force --project api/src/Tides.Api
-dotnet ef database update --project api/src/Tides.Api
+docker compose up migrate
 ```
 
 ## Run the API
@@ -148,12 +159,15 @@ Run from `frontend/`:
 
 ## Build the images
 
-Compose builds both images. To build one on its own:
+Compose builds all three images. To build one on its own:
 
 ```shell
 docker build -t tides-api api
+docker build --target migrate -t tides-migrate api
 docker build -f frontend/Dockerfile.dev -t tides-frontend-dev frontend
 ```
+
+The `migrate` image holds only the migration bundle. It reads the connection string from `ConnectionStrings__Tides` like the API, or from `--connection`.
 
 The API image listens on port 8080 and runs as a non-root user. It defaults to the Production environment, where the OpenAPI document and Scalar are off. Compose sets `ASPNETCORE_ENVIRONMENT=Development` to turn them on.
 
