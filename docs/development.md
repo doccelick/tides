@@ -6,7 +6,7 @@
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), for running and testing the API without Docker
 - [Node.js](https://nodejs.org/) 22.22.2+, 24.15+ or 26+, for running and testing the frontend without Docker
 
-The SQL Server image runs only on x86-64. Microsoft doesn't support it under emulation, such as Rosetta 2 on Apple silicon or Prism on Windows on Arm. On those machines, run only the unit tests, as described under [Run the tests](#run-the-tests).
+The SQL Server image runs only on x86-64. Microsoft doesn't support it under emulation, such as Rosetta 2 on Apple silicon or Prism on Windows on Arm. On those machines, run only the unit tests, as described in [testing.md](testing.md#run-the-tests).
 
 ## Repository layout
 
@@ -113,13 +113,7 @@ The API listens on `http://localhost:8080` and runs in the Development environme
 dotnet test api/Tides.slnx
 ```
 
-`global.json` switches `dotnet test` to Microsoft.Testing.Platform.
-
-The integration tests start SQL Server in a Docker container, so Docker must be running. The first run pulls the SQL Server image, which takes a few minutes. To run only the unit tests, without Docker:
-
-```shell
-dotnet test api/tests/Tides.Api.Tests
-```
+The integration tests need Docker. [testing.md](testing.md) describes how the tests are organized and how to run only some of them.
 
 ## Run the frontend
 
