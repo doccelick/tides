@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recharts";
 import type { SampleResponse } from "@/api/generated";
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { formatTideLevel } from "@/tides/format";
 import { dayTicks } from "./dayTicks";
 import { levelLines } from "./levelLines";
 
@@ -20,6 +26,14 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const tickFormat = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric" });
+
+const tooltipFormat = new Intl.DateTimeFormat("en-GB", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // Fills the width of its parent, so the parent decides how many days fit in view.
 export function TideChart({ samples, now }: TideChartProps) {
@@ -62,6 +76,15 @@ export function TideChart({ samples, now }: TideChartProps) {
             strokeOpacity={level % 100 === 0 ? 0.4 : 0.15}
           />
         ))}
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              hideIndicator
+              labelFormatter={(_, payload) => tooltipFormat.format(payload[0]?.payload.time)}
+              formatter={(level) => formatTideLevel(Number(level))}
+            />
+          }
+        />
         <Area
           dataKey="level"
           type="monotone"
