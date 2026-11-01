@@ -69,16 +69,19 @@ export function TideCard({
         </Button>
         {showsGraph && <DaysInViewToggle value={daysInView} onValueChange={setDaysInView} />}
       </div>
-      {showsGraph ? (
-        <TideGraph
-          key={tidesVersion}
-          locationId={locationId}
-          daysInView={daysInView}
-          ref={todayRef}
-        />
-      ) : (
-        <TidePanel key={`${path}#${tidesVersion}`} path={path} ref={todayRef} />
-      )}
+      {/* As tall as the graph view, so both views and their loading states line up. */}
+      <div className="min-h-37">
+        {showsGraph ? (
+          <TideGraph
+            key={tidesVersion}
+            locationId={locationId}
+            daysInView={daysInView}
+            ref={todayRef}
+          />
+        ) : (
+          <TidePanel key={`${path}#${tidesVersion}`} path={path} ref={todayRef} />
+        )}
+      </div>
       {children}
     </section>
   );
