@@ -18,7 +18,7 @@ describe("CurrentLevel", () => {
     render(<CurrentLevel path="/v1/stations/BOO" />);
 
     expect(await screen.findByText("208 cm")).toBeInTheDocument();
-    expect(screen.getByText(/measured 22:10/)).toBeInTheDocument();
+    expect(screen.getByText(/at 22:10 · measured/)).toBeInTheDocument();
   });
 
   it("shows an estimate with the station it comes from", async () => {
@@ -38,7 +38,7 @@ describe("CurrentLevel", () => {
     render(<CurrentLevel path="/v1/locations/7" />);
 
     expect(await screen.findByText("241 cm")).toBeInTheDocument();
-    expect(screen.getByText(/estimated from Bodø, 4.7 km away, 01:20/)).toBeInTheDocument();
+    expect(screen.getByText(/at 01:20 · estimated from Bodø, 4.7 km away/)).toBeInTheDocument();
   });
 
   it("shows nothing when the station has no water level", async () => {

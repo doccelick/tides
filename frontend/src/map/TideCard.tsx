@@ -36,9 +36,16 @@ export function TideCard({
   const showsGraph = locationId !== undefined && view === "graph";
 
   return (
-    <section aria-label={name} className="max-h-[60svh] overflow-y-auto border-t bg-background p-4">
+    // The height fits the tides or the graph, so the parts below them are reached by scrolling the card.
+    <section
+      aria-label={name}
+      className="max-h-[min(60svh,18rem)] overflow-y-auto border-t bg-background px-4 py-3"
+    >
       <div className="flex items-center gap-2">
-        <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{name}</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-semibold">{name}</h2>
+          <CurrentLevel path={path} />
+        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -49,8 +56,7 @@ export function TideCard({
           <XIcon />
         </Button>
       </div>
-      <CurrentLevel path={path} />
-      <div className="flex items-center gap-1">
+      <div className="mt-1 flex items-center gap-1">
         {locationId !== undefined && <TideViewToggle value={view} onValueChange={setView} />}
         <Button
           variant="outline"

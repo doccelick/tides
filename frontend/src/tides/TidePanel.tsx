@@ -18,7 +18,7 @@ interface StripLayout {
 }
 
 const stripClassName =
-  "flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 [scrollbar-width:none] cursor-grab active:cursor-grabbing";
+  "flex snap-x snap-mandatory gap-2 overflow-x-auto py-2 [scrollbar-width:none] cursor-grab active:cursor-grabbing";
 
 export function TidePanel({ path, ref }: TidePanelProps) {
   const { state, earlier, later, loadEarlier, loadLater } = useTides(path);
@@ -89,10 +89,9 @@ export function TidePanel({ path, ref }: TidePanelProps) {
         ))}
         <EdgeTile status={later} failedMessage="Couldn't load later tides" onLoad={loadLater} />
       </ul>
-      <div className="text-xs text-muted-foreground">
-        <p>Levels relative to chart datum.</p>
-        <TideAttribution />
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Levels above chart datum · <TideAttribution />
+      </p>
     </>
   );
 }

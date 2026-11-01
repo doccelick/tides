@@ -96,13 +96,13 @@ export function TideGraph({ locationId, daysInView, ref }: TideGraphProps) {
     leftShare.current = (strip.scrollLeft - chart.offsetLeft) / chart.offsetWidth;
   }
 
-  if (state.status === "loading") return <Skeleton className="my-3 h-40 w-full" />;
+  if (state.status === "loading") return <Skeleton className="my-2 h-28 w-full" />;
   if (state.status === "no-data") {
-    return <p className="py-3 text-sm">No imported water levels for today.</p>;
+    return <p className="py-2 text-sm">No imported water levels for today.</p>;
   }
   if (state.status === "failed") {
     return (
-      <p role="alert" className="py-3 text-sm">
+      <p role="alert" className="py-2 text-sm">
         Couldn't load water levels
       </p>
     );
@@ -111,7 +111,7 @@ export function TideGraph({ locationId, daysInView, ref }: TideGraphProps) {
   const loadedDays = (dayStart(state.end) - dayStart(state.from)) / millisecondsPerDay;
 
   return (
-    <div className="flex flex-col gap-2 py-3">
+    <div className="flex flex-col gap-1 py-2">
       <div ref={stripRef} className={stripClassName} onScroll={recordLeftShare} {...dragHandlers}>
         <GraphEdge
           status={earlier}
@@ -121,7 +121,7 @@ export function TideGraph({ locationId, daysInView, ref }: TideGraphProps) {
         />
         <div
           ref={chartRef}
-          className="h-40 shrink-0"
+          className="h-28 shrink-0"
           style={{ width: `${(loadedDays / daysInView) * 100}%` }}
         >
           {/* A new key draws the curve in again when the days in view change. */}
@@ -134,10 +134,9 @@ export function TideGraph({ locationId, daysInView, ref }: TideGraphProps) {
           onLoad={loadLater}
         />
       </div>
-      <div className="text-xs text-muted-foreground">
-        <p>Lines every {levelLineStepCm} cm above chart datum. The red line is now.</p>
-        <TideAttribution />
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Lines every {levelLineStepCm} cm above chart datum · <TideAttribution />
+      </p>
     </div>
   );
 }

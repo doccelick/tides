@@ -1,7 +1,7 @@
+// Inline, so it can end a footnote line.
 export function TideAttribution() {
   return (
-    <p>
-      Tide data from{" "}
+    <span>
       <a
         href="https://vannstand.kartverket.no/tideapi_en.html"
         target="_blank"
@@ -19,6 +19,6 @@ export function TideAttribution() {
       >
         CC BY 4.0
       </a>
-    </p>
+    </span>
   );
 }

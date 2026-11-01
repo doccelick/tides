@@ -11,17 +11,26 @@ export function CurrentLevel({ path }: CurrentLevelProps) {
 
   if (state.status === "loading") return <Skeleton className="h-5 w-40" />;
   if (state.status === "no-data") return null;
-  if (state.status === "failed") return <p role="alert">Couldn't load water level</p>;
+  if (state.status === "failed") {
+    return (
+      <p role="alert" className="text-sm">
+        Couldn't load water level
+      </p>
+    );
+  }
 
   const { waterLevel } = state;
   const time = formatTideTime(waterLevel.time);
 
   return (
-    <p>
-      <span className="font-semibold tabular-nums">{formatTideLevel(waterLevel.levelCm)}</span>{" "}
+    <p className="truncate text-sm text-muted-foreground">
+      <span className="font-semibold text-foreground tabular-nums">
+        {formatTideLevel(waterLevel.levelCm)}
+      </span>{" "}
+      at {time} ·{" "}
       {"stationName" in waterLevel
-        ? `(estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away, ${time})`
-        : `(measured ${time})`}
+        ? `estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away`
+        : "measured"}
     </p>
   );
 }
