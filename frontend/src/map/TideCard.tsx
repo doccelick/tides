@@ -42,9 +42,11 @@ export function TideCard({
       className="max-h-[min(60svh,18rem)] overflow-y-auto border-t bg-background px-4 py-3"
     >
       <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <h2 className="truncate text-lg font-semibold">{name}</h2>
-          <CurrentLevel path={path} />
+          <div className="shrink-0">
+            <CurrentLevel path={path} />
+          </div>
         </div>
         <Button
           variant="ghost"

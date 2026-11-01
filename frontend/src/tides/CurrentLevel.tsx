@@ -1,3 +1,6 @@
+import { CircleHelpIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTideLevel, formatTideTime } from "./format";
 import { useWaterLevel } from "./useWaterLevel";
@@ -21,16 +24,22 @@ export function CurrentLevel({ path }: CurrentLevelProps) {
 
   const { waterLevel } = state;
   const time = formatTideTime(waterLevel.time);
+  const details =
+    "stationName" in waterLevel
+      ? `Estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away, at ${time}.`
+      : `Measured at ${time}.`;
 
   return (
-    <p className="truncate text-sm text-muted-foreground">
-      <span className="font-semibold text-foreground tabular-nums">
-        {formatTideLevel(waterLevel.levelCm)}
-      </span>{" "}
-      at {time} ·{" "}
-      {"stationName" in waterLevel
-        ? `estimated from ${waterLevel.stationName}, ${waterLevel.distanceKm} km away`
-        : "measured"}
-    </p>
+    <div className="flex items-center gap-1 text-sm">
+      <span className="font-semibold tabular-nums">{formatTideLevel(waterLevel.levelCm)}</span>
+      <Popover>
+        <PopoverTrigger
+          render={<Button variant="ghost" size="icon-xs" aria-label="About this level" />}
+        >
+          <CircleHelpIcon />
+        </PopoverTrigger>
+        <PopoverContent className="w-auto max-w-64 text-sm">{details}</PopoverContent>
+      </Popover>
+    </div>
   );
 }

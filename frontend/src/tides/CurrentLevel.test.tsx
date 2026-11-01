@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { EstimatedWaterLevelResponse, WaterLevelResponse } from "@/api/generated";
 import { CurrentLevel } from "./CurrentLevel";
@@ -18,7 +19,10 @@ describe("CurrentLevel", () => {
     render(<CurrentLevel path="/v1/stations/BOO" />);
 
     expect(await screen.findByText("208 cm")).toBeInTheDocument();
-    expect(screen.getByText(/at 22:10 · measured/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "About this level" }));
+
+    expect(await screen.findByText("Measured at 22:10.")).toBeInTheDocument();
   });
 
   it("shows an estimate with the station it comes from", async () => {
@@ -38,7 +42,12 @@ describe("CurrentLevel", () => {
     render(<CurrentLevel path="/v1/locations/7" />);
 
     expect(await screen.findByText("241 cm")).toBeInTheDocument();
-    expect(screen.getByText(/at 01:20 · estimated from Bodø, 4.7 km away/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "About this level" }));
+
+    expect(
+      await screen.findByText("Estimated from Bodø, 4.7 km away, at 01:20."),
+    ).toBeInTheDocument();
   });
 
   it("shows nothing when the station has no water level", async () => {
