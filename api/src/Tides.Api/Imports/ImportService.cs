@@ -8,6 +8,14 @@ namespace Tides.Api.Imports;
 
 public sealed class ImportService(TidesDbContext database, KartverketClient kartverket, TimeProvider timeProvider)
 {
+    // Imports the parts of the location's window that no stored import covers.
+    public Task<IReadOnlyList<Import>> ImportWindowAsync(Location location, CancellationToken cancellationToken = default)
+    {
+        var (from, to) = ImportWindow.Around(timeProvider.GetUtcNow());
+
+        return ImportAsync(location, from, to, cancellationToken);
+    }
+
     // Creates one import for each part of the range that no stored import covers.
     // Returns an empty list when the whole range is already imported.
     public async Task<IReadOnlyList<Import>> ImportAsync(
