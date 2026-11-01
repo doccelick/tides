@@ -173,6 +173,7 @@ export function MapPage() {
           key={panel.path}
           name={panel.name}
           path={panel.path}
+          locationId={panel.locationId}
           tidesVersion={tidesVersion}
           onClose={() => {
             setPanel(null);

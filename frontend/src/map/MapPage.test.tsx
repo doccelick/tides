@@ -114,6 +114,7 @@ describe("MapPage", () => {
     await user.click(await screen.findByRole("button", { name: "Bergen" }));
     expect(screen.getByRole("region", { name: "Bergen" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Graph" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
@@ -144,6 +145,25 @@ describe("MapPage", () => {
     expect(screen.getByRole("region", { name: "Kjerringøy" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete location" })).not.toBeInTheDocument();
+  });
+
+  it("switches a location's card between the tides and the graph", async () => {
+    auth.isAdmin = false;
+    const user = userEvent.setup();
+    render(<MapPage />);
+    await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
+
+    await user.click(screen.getByRole("button", { name: "Graph" }));
+
+    expect(await screen.findByText("No imported water levels for today.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Tides" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2 days", pressed: true })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Tides" }));
+
+    expect(await screen.findByRole("list", { name: "Tides" })).toBeInTheDocument();
+    expect(screen.queryByText("No imported water levels for today.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "2 days" })).not.toBeInTheDocument();
   });
 
   it("replaces an open station card with the location's card", async () => {

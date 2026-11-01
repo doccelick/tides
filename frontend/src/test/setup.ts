@@ -12,6 +12,16 @@ class NoopIntersectionObserver {
   }
 }
 
-beforeEach(() => vi.stubGlobal("IntersectionObserver", NoopIntersectionObserver));
+// jsdom has no ResizeObserver either, and Recharts needs one to measure its container.
+class NoopResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+beforeEach(() => {
+  vi.stubGlobal("IntersectionObserver", NoopIntersectionObserver);
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+});
 
 afterEach(() => cleanup());
