@@ -6,7 +6,6 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useIsAdmin } from "@/auth/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { LocationImports } from "@/imports/LocationImports";
-import { SamplesPanel } from "@/samples/SamplesPanel";
 import { DeleteLocationButton } from "./DeleteLocationButton";
 import { kartverketSource, type BaseLayer } from "./kartverketSource";
 import { NewLocationCard } from "./NewLocationCard";
@@ -174,15 +173,13 @@ export function MapPage() {
           key={panel.path}
           name={panel.name}
           path={panel.path}
+          locationId={panel.locationId}
           tidesVersion={tidesVersion}
           onClose={() => {
             setPanel(null);
             selectedMarkerRef.current?.focus({ preventScroll: true });
           }}
         >
-          {panel.locationId !== undefined && (
-            <SamplesPanel key={tidesVersion} locationId={panel.locationId} />
-          )}
           {isAdmin && panel.locationId !== undefined && (
             <>
               <LocationImports

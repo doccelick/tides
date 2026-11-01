@@ -64,7 +64,7 @@ describe("MapPage", () => {
       "fetch",
       vi.fn((url: string) => {
         if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
-        if (url.endsWith("/water-level") || url.includes("/samples?"))
+        if (url.endsWith("/water-level"))
           return Promise.resolve(new Response(null, { status: 404 }));
         if (url === "/v1/locations") return Promise.resolve(Response.json({ locations }));
         if (url.endsWith("/imports")) return Promise.resolve(Response.json({ imports: [] }));
@@ -114,6 +114,7 @@ describe("MapPage", () => {
     await user.click(await screen.findByRole("button", { name: "Bergen" }));
     expect(screen.getByRole("region", { name: "Bergen" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Imports" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Graph" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("region", { name: "Bergen" })).not.toBeInTheDocument();
@@ -146,6 +147,23 @@ describe("MapPage", () => {
     expect(screen.queryByRole("button", { name: "Delete location" })).not.toBeInTheDocument();
   });
 
+  it("switches a location's card between the tides and the graph", async () => {
+    auth.isAdmin = false;
+    const user = userEvent.setup();
+    render(<MapPage />);
+    await user.click(await screen.findByRole("button", { name: "Kjerringøy" }));
+
+    await user.click(screen.getByRole("button", { name: "Graph" }));
+
+    expect(await screen.findByText("No imported water levels for today.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Tides" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Tides" }));
+
+    expect(await screen.findByRole("list", { name: "Tides" })).toBeInTheDocument();
+    expect(screen.queryByText("No imported water levels for today.")).not.toBeInTheDocument();
+  });
+
   it("replaces an open station card with the location's card", async () => {
     const user = userEvent.setup();
     render(<MapPage />);
@@ -176,7 +194,7 @@ describe("MapPage", () => {
           if (init?.method === "POST")
             return Promise.resolve(Response.json(imports, { status: 201 }));
           if (url.includes("/tides?")) return Promise.resolve(Response.json(tides));
-          if (url.endsWith("/water-level") || url.includes("/samples?"))
+          if (url.endsWith("/water-level"))
             return Promise.resolve(new Response(null, { status: 404 }));
           if (url === "/v1/locations") return Promise.resolve(Response.json({ locations: [] }));
           if (url.endsWith("/imports")) return Promise.resolve(Response.json(imports));
