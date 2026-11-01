@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
+import type { TodayHandle } from "./TodayHandle";
 import { useTides } from "./useTides";
 import { findNextTideIndex } from "./findNextTideIndex";
 import { TideTile, TideTileSkeleton } from "./TideTile";
@@ -8,6 +9,7 @@ import { useDragScroll } from "./useDragScroll";
 
 interface TidePanelProps {
   path: string;
+  ref?: Ref<TodayHandle>;
 }
 
 interface StripLayout {
@@ -18,7 +20,7 @@ interface StripLayout {
 const stripClassName =
   "flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 [scrollbar-width:none] cursor-grab active:cursor-grabbing";
 
-export function TidePanel({ path }: TidePanelProps) {
+export function TidePanel({ path, ref }: TidePanelProps) {
   const { state, earlier, later, loadEarlier, loadLater } = useTides(path);
   const [now] = useState(() => new Date());
 
@@ -29,17 +31,24 @@ export function TidePanel({ path }: TidePanelProps) {
   const hasScrolledToNext = useRef(false);
   const lastLayout = useRef<StripLayout | null>(null);
 
+  function scrollToNext() {
+    const strip = stripRef.current;
+    if (strip === null || nextIndex === -1) return;
+
+    // The tile that loads earlier days comes first until there are no earlier days.
+    const firstTideChild = earlier === "end" ? 0 : 1;
+    const nextTile = strip.children[nextIndex + firstTideChild] as HTMLElement;
+    strip.scrollLeft = nextTile.offsetLeft;
+  }
+
+  useImperativeHandle(ref, () => ({ scrollToToday: scrollToNext }));
+
   // Scrolls to the next tide once, when the first days load.
   useLayoutEffect(() => {
-    const strip = stripRef.current;
-    if (strip === null || hasScrolledToNext.current) return;
+    if (stripRef.current === null || hasScrolledToNext.current) return;
 
     hasScrolledToNext.current = true;
-    if (nextIndex === -1) return;
-
-    // On the first load the first child is the tile that loads earlier days.
-    const nextTile = strip.children[nextIndex + 1] as HTMLElement;
-    strip.scrollLeft = nextTile.offsetLeft;
+    scrollToNext();
   });
 
   // Keeps the same tiles in view when earlier days are added in front of them.

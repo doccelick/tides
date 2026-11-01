@@ -157,11 +157,13 @@ describe("MapPage", () => {
 
     expect(await screen.findByText("No imported water levels for today.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Tides" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2 days", pressed: true })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Tides" }));
 
     expect(await screen.findByRole("list", { name: "Tides" })).toBeInTheDocument();
     expect(screen.queryByText("No imported water levels for today.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "2 days" })).not.toBeInTheDocument();
   });
 
   it("replaces an open station card with the location's card", async () => {

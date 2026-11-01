@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImportResponse, SamplesResponse } from "@/api/generated";
 import { TideGraph } from "./TideGraph";
@@ -47,28 +46,15 @@ describe("TideGraph", () => {
   it("shows the water level for the imported days", async () => {
     stubApi([nextWeek]);
 
-    render(<TideGraph locationId={3} />);
+    render(<TideGraph locationId={3} daysInView={2} />);
 
     expect(await screen.findByRole("figure", { name: "Water level" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "2 days", pressed: true })).toBeInTheDocument();
-  });
-
-  it("switches the days in view", async () => {
-    const user = userEvent.setup();
-    stubApi([nextWeek]);
-    render(<TideGraph locationId={3} />);
-    await screen.findByRole("figure", { name: "Water level" });
-
-    await user.click(screen.getByRole("button", { name: "1 day" }));
-
-    expect(screen.getByRole("button", { name: "1 day", pressed: true })).toBeInTheDocument();
-    expect(screen.getByRole("figure", { name: "Water level" })).toBeInTheDocument();
   });
 
   it("says so when today isn't imported", async () => {
     stubApi([]);
 
-    render(<TideGraph locationId={3} />);
+    render(<TideGraph locationId={3} daysInView={2} />);
 
     expect(await screen.findByText("No imported water levels for today.")).toBeInTheDocument();
   });
@@ -76,7 +62,7 @@ describe("TideGraph", () => {
   it("shows an error when the water levels can't be loaded", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 500 })));
 
-    render(<TideGraph locationId={3} />);
+    render(<TideGraph locationId={3} daysInView={2} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load water levels");
   });

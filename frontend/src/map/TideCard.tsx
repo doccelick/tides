@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { DaysInViewToggle, type DaysInView } from "@/samples/DaysInViewToggle";
 import { TideGraph } from "@/samples/TideGraph";
 import { CurrentLevel } from "@/tides/CurrentLevel";
 import { TidePanel } from "@/tides/TidePanel";
+import type { TodayHandle } from "@/tides/TodayHandle";
 import { XIcon } from "lucide-react";
 
 type TideView = "tides" | "graph";
@@ -29,13 +31,14 @@ export function TideCard({
   children,
 }: TideCardProps) {
   const [view, setView] = useState<TideView>("tides");
+  const [daysInView, setDaysInView] = useState<DaysInView>(2);
+  const todayRef = useRef<TodayHandle>(null);
   const showsGraph = locationId !== undefined && view === "graph";
 
   return (
     <section aria-label={name} className="max-h-[60svh] overflow-y-auto border-t bg-background p-4">
       <div className="flex items-center gap-2">
         <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{name}</h2>
-        {locationId !== undefined && <TideViewToggle value={view} onValueChange={setView} />}
         <Button
           variant="ghost"
           size="icon"
@@ -47,10 +50,26 @@ export function TideCard({
         </Button>
       </div>
       <CurrentLevel path={path} />
+      <div className="flex items-center gap-1">
+        {locationId !== undefined && <TideViewToggle value={view} onValueChange={setView} />}
+        <Button
+          variant="outline"
+          className="ml-auto h-11"
+          onClick={() => todayRef.current?.scrollToToday()}
+        >
+          Today
+        </Button>
+        {showsGraph && <DaysInViewToggle value={daysInView} onValueChange={setDaysInView} />}
+      </div>
       {showsGraph ? (
-        <TideGraph key={tidesVersion} locationId={locationId} />
+        <TideGraph
+          key={tidesVersion}
+          locationId={locationId}
+          daysInView={daysInView}
+          ref={todayRef}
+        />
       ) : (
-        <TidePanel key={`${path}#${tidesVersion}`} path={path} />
+        <TidePanel key={`${path}#${tidesVersion}`} path={path} ref={todayRef} />
       )}
       {children}
     </section>

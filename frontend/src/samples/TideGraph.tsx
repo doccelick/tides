@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TideAttribution } from "@/tides/TideAttribution";
+import type { TodayHandle } from "@/tides/TodayHandle";
 import { useDragScroll } from "@/tides/useDragScroll";
-import { DaysInViewToggle, type DaysInView } from "./DaysInViewToggle";
+import type { DaysInView } from "./DaysInViewToggle";
 import { GraphEdge } from "./GraphEdge";
 import { levelLineStepCm } from "./levelLines";
 import { TideChart } from "./TideChart";
@@ -10,6 +11,8 @@ import { useSampleStrip } from "./useSampleStrip";
 
 interface TideGraphProps {
   locationId: number;
+  daysInView: DaysInView;
+  ref?: Ref<TodayHandle>;
 }
 
 interface StripLayout {
@@ -19,7 +22,7 @@ interface StripLayout {
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-// How far in from the left edge now is when the graph opens, as a share of the view's width.
+// How far in from the left edge now is when scrolled to, as a share of the view's width.
 const nowInset = 0.1;
 
 const stripClassName =
@@ -29,31 +32,37 @@ function dayStart(day: string): number {
   return Date.parse(`${day}T00:00:00Z`);
 }
 
-export function TideGraph({ locationId }: TideGraphProps) {
+export function TideGraph({ locationId, daysInView, ref }: TideGraphProps) {
   const { state, earlier, later, loadEarlier, loadLater } = useSampleStrip(locationId);
   const [now] = useState(() => new Date());
-  const [daysInView, setDaysInView] = useState<DaysInView>(2);
 
   const stripRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const hasScrolledToNow = useRef(false);
   const lastLayout = useRef<StripLayout | null>(null);
-  // The share of the chart's width at the left edge of the view, kept while the days in view change.
+  // The share of the chart's width at the left edge of the view, updated on every scroll.
   const leftShare = useRef<number | null>(null);
 
   const from = state.status === "loaded" ? state.from : undefined;
 
-  // Scrolls to now once, when the first days load.
-  useLayoutEffect(() => {
+  function scrollToNow() {
     const strip = stripRef.current;
     const chart = chartRef.current;
     if (strip === null || chart === null || state.status !== "loaded") return;
-    if (hasScrolledToNow.current) return;
 
-    hasScrolledToNow.current = true;
     const start = dayStart(state.from);
     const share = (now.getTime() - start) / (dayStart(state.end) - start);
     strip.scrollLeft = chart.offsetLeft + share * chart.offsetWidth - nowInset * strip.clientWidth;
+  }
+
+  useImperativeHandle(ref, () => ({ scrollToToday: scrollToNow }));
+
+  // Scrolls to now once, when the first days load.
+  useLayoutEffect(() => {
+    if (stripRef.current === null || hasScrolledToNow.current) return;
+
+    hasScrolledToNow.current = true;
+    scrollToNow();
   });
 
   // Keeps the same days in view when earlier days are added in front of them.
@@ -75,18 +84,16 @@ export function TideGraph({ locationId }: TideGraphProps) {
     if (strip === null || chart === null || leftShare.current === null) return;
 
     strip.scrollLeft = chart.offsetLeft + leftShare.current * chart.offsetWidth;
-    leftShare.current = null;
   }, [daysInView]);
 
   const dragHandlers = useDragScroll();
 
-  function changeDaysInView(days: DaysInView) {
+  function recordLeftShare() {
     const strip = stripRef.current;
     const chart = chartRef.current;
-    if (strip !== null && chart !== null) {
-      leftShare.current = (strip.scrollLeft - chart.offsetLeft) / chart.offsetWidth;
-    }
-    setDaysInView(days);
+    if (strip === null || chart === null) return;
+
+    leftShare.current = (strip.scrollLeft - chart.offsetLeft) / chart.offsetWidth;
   }
 
   if (state.status === "loading") return <Skeleton className="my-3 h-40 w-full" />;
@@ -105,10 +112,7 @@ export function TideGraph({ locationId }: TideGraphProps) {
 
   return (
     <div className="flex flex-col gap-2 py-3">
-      <div className="flex justify-end">
-        <DaysInViewToggle value={daysInView} onValueChange={changeDaysInView} />
-      </div>
-      <div ref={stripRef} className={stripClassName} {...dragHandlers}>
+      <div ref={stripRef} className={stripClassName} onScroll={recordLeftShare} {...dragHandlers}>
         <GraphEdge
           status={earlier}
           endMessage="No imported data before this day"
