@@ -18,7 +18,7 @@ When run locally, the API listens on `http://localhost:8080`. See [development.m
 | `GET /v1/locations/{id}/tides` | High and low tides at a saved location, with the same range as for stations |
 | `GET /v1/locations/{id}/water-level` | An estimated water level at a saved location, based on the nearest station |
 | `GET /v1/locations/{id}/samples` | Predicted water levels every 10 or 60 minutes at a saved location, read from its imports |
-| `POST /v1/locations/{id}/imports` | Imports a location's tides for a range into the database, skipping what is already imported |
+| `POST /v1/locations/{id}/imports` | Imports a location's tides for the previous, current and next month into the database, skipping what is already imported |
 | `GET /v1/locations/{id}/imports` | A location's imports |
 | `DELETE /v1/imports/{id}` | Deletes an import and its tide data |
 
@@ -175,13 +175,9 @@ When the location's imports don't cover the whole range, the API returns `404 No
 
 An import stores a location's tides for a range of time in the database, so `GET /v1/locations/{id}/tides` and `GET /v1/locations/{id}/samples` can read them without calling Kartverket. It holds the high and low tides and the predicted level every 10 minutes.
 
-`POST /v1/locations/{id}/imports` imports the range from `from` up to `to`, where `from` is included and `to` is not. The range can be in the past or the future and at most 31 days long.
+`POST /v1/locations/{id}/imports` takes no body. It imports the location's tides for the previous, current and next month, counted in UTC. In November 2026 that is from 1 October 2026 up to 1 January 2027.
 
-```json
-{ "from": "2026-11-01T00:00:00+00:00", "to": "2026-11-08T00:00:00+00:00" }
-```
-
-The API imports only the parts of the range that no earlier import for the location covers, and each part becomes a separate import. For example, after importing 1 to 8 November, a request for 1 November to 2 December imports 8 November to 2 December. The response is `201 Created` with the new imports.
+The API imports only the parts of those months that no earlier import for the location covers, and each part becomes a separate import. For example, when November is already imported, a request in November imports October and December as two imports. The response is `201 Created` with the new imports.
 
 ```json
 {
@@ -189,16 +185,26 @@ The API imports only the parts of the range that no earlier import for the locat
     {
       "id": 12,
       "locationId": 7,
-      "from": "2026-11-08T00:00:00+00:00",
-      "to": "2026-12-02T00:00:00+00:00",
-      "importedAt": "2026-10-30T18:02:11+00:00",
-      "entryCount": 3549
+      "from": "2026-10-01T00:00:00+00:00",
+      "to": "2026-11-01T00:00:00+00:00",
+      "importedAt": "2026-11-04T18:02:11+00:00",
+      "entryCount": 4584
+    },
+    {
+      "id": 13,
+      "locationId": 7,
+      "from": "2026-12-01T00:00:00+00:00",
+      "to": "2027-01-01T00:00:00+00:00",
+      "importedAt": "2026-11-04T18:02:11+00:00",
+      "entryCount": 4583
     }
   ]
 }
 ```
 
-`entryCount` is the number of stored high tides, low tides and predicted levels. When imports already cover the whole range, the API returns `409 Conflict` and calls nothing at Kartverket.
+`entryCount` is the number of stored high tides, low tides and predicted levels. When imports already cover all three months, the API returns `409 Conflict` and calls nothing at Kartverket.
+
+Imports run one at a time. A request that arrives while another import is running waits for it to finish, and fails with `500 Internal Server Error` if the other import still runs after 20 s.
 
 `GET /v1/locations/{id}/imports` returns all imports for a location in the same shape, ordered by `from`. `DELETE /v1/imports/{id}` deletes an import with its tide data and returns `204 No Content`.
 
@@ -227,10 +233,9 @@ Errors are returned as [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) 
 | `404 Not Found` | The location's imports don't cover the whole range of a samples request. The title is `No imported water levels for this range.` |
 | `400 Bad Request` | A location's `name` is missing, only whitespace or longer than 100 characters, or `latitude` or `longitude` is missing or out of range. The field is listed under `errors` |
 | `422 Unprocessable Entity` | Kartverket has no tide data at a new location's position. The title is `Too far from the coast.` |
-| `400 Bad Request` | An import's `from` or `to` is missing, `to` is not after `from`, or the range is longer than 31 days. The field is listed under `errors` |
 | `404 Not Found` | No station is within 50 km of the location, or the nearest one has no water level from the last 30 minutes. The title is `No water level estimate for this location.` |
 | `404 Not Found` | `DELETE /v1/locations/{id}` or `DELETE /v1/imports/{id}` has an unknown id |
-| `409 Conflict` | Imports already cover the whole range. The title is `Range already imported.` |
+| `409 Conflict` | Imports already cover the previous, current and next month. The title is `Months already imported.` |
 | `502 Bad Gateway` | Kartverket's Tide API fails, times out or returns a response the API cannot read |
 
 ## Cross-origin requests
