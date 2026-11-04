@@ -56,6 +56,7 @@ public static class ServiceRegistration
         services.AddScoped<StationService>();
         services.AddScoped<TideService>();
         services.AddScoped<WaterLevelService>();
+        services.AddScoped<TideEntryWriter>();
         services.AddScoped<ImportService>();
         services.AddScoped<LocationService>();
         services.AddScoped<SampleService>();

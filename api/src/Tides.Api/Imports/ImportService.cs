@@ -6,7 +6,11 @@ using Tides.Api.Locations;
 
 namespace Tides.Api.Imports;
 
-public sealed class ImportService(TidesDbContext database, KartverketClient kartverket, TimeProvider timeProvider)
+public sealed class ImportService(
+    TidesDbContext database,
+    KartverketClient kartverket,
+    TideEntryWriter entryWriter,
+    TimeProvider timeProvider)
 {
     // Imports the parts of the location's window that no stored import covers.
     public Task<IReadOnlyList<Import>> ImportWindowAsync(Location location, CancellationToken cancellationToken = default)
@@ -56,18 +60,27 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
 
         var importedAt = timeProvider.GetUtcNow();
         var imports = gaps
-            .Select(gap => CreateImport(location, gap.From, gap.To, importedAt, tides, predictions))
+            .Select(gap => new Import { LocationId = location.Id, From = gap.From, To = gap.To, ImportedAt = importedAt })
             .ToList();
 
         database.Imports.AddRange(imports);
+        await database.SaveChangesAsync(cancellationToken);
+
+        // The imports are detached before their entries are added, so a later SaveChanges on this
+        // context does not insert the entries a second time.
+        foreach (var import in imports)
+        {
+            database.Entry(import).State = EntityState.Detached;
+            import.Entries = CreateEntries(import, tides, predictions);
+        }
 
         try
         {
-            await database.SaveChangesAsync(cancellationToken);
+            await entryWriter.WriteAsync(imports.SelectMany(i => i.Entries), cancellationToken);
         }
         // The unique index on entries is a second guard. SQL Server error 2601 means some of the
         // entries are already stored, so nothing is imported and the transaction rolls back.
-        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
+        catch (SqlException exception) when (exception.Number == 2601)
         {
             return [];
         }
@@ -77,27 +90,19 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         return imports;
     }
 
-    private static Import CreateImport(
-        Location location,
-        DateTimeOffset from,
-        DateTimeOffset to,
-        DateTimeOffset importedAt,
+    private static List<TideEntry> CreateEntries(
+        Import import,
         IReadOnlyList<Tide> tides,
         IReadOnlyList<Prediction> predictions)
     {
-        var import = new Import
-        {
-            LocationId = location.Id,
-            From = from,
-            To = to,
-            ImportedAt = importedAt
-        };
+        var entries = new List<TideEntry>();
 
         foreach (var tide in tides.Where(t => import.Covers(t.Time)))
         {
-            import.Entries.Add(new TideEntry
+            entries.Add(new TideEntry
             {
-                LocationId = location.Id,
+                ImportId = import.Id,
+                LocationId = import.LocationId,
                 Time = tide.Time,
                 Type = GetTideEntryType(tide.Type),
                 LevelCm = tide.LevelCm
@@ -106,16 +111,17 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
 
         foreach (var prediction in predictions.Where(p => import.Covers(p.Time)))
         {
-            import.Entries.Add(new TideEntry
+            entries.Add(new TideEntry
             {
-                LocationId = location.Id,
+                ImportId = import.Id,
+                LocationId = import.LocationId,
                 Time = prediction.Time,
                 Type = TideEntryType.Prediction,
                 LevelCm = prediction.LevelCm
             });
         }
 
-        return import;
+        return entries;
     }
 
     public async Task<ImportsResponse> GetImportsAsync(int locationId, CancellationToken cancellationToken = default)
