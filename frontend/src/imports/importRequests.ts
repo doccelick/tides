@@ -1,18 +1,13 @@
-import type { CreateImportRequest, ImportsResponse } from "@/api/generated";
+import type { ImportsResponse } from "@/api/generated";
 import { sendJson } from "@/api/sendJson";
 import { getAdminToken } from "@/auth/getAdminToken";
-import type { UtcRange } from "./importPresets";
 
-export async function createImport(locationId: number, range: UtcRange) {
-  const request: CreateImportRequest = {
-    from: `${range.from}T00:00:00Z`,
-    to: `${range.to}T00:00:00Z`,
-  };
-
+// Imports the months of the location's window that are not imported yet.
+export async function createImport(locationId: number) {
   return sendJson<ImportsResponse>(
     "POST",
     `/v1/locations/${locationId}/imports`,
-    request,
+    undefined,
     await getAdminToken(),
   );
 }

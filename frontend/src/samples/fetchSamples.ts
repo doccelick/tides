@@ -1,5 +1,5 @@
 import type { GetLocationSamplesData, SamplesResponse } from "@/api/generated";
-import type { UtcRange } from "@/imports/importPresets";
+import type { UtcRange } from "@/tides/utcDay";
 
 export type SampleInterval = NonNullable<NonNullable<GetLocationSamplesData["query"]>["interval"]>;
 

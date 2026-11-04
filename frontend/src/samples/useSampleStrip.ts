@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ImportsResponse, SampleResponse } from "@/api/generated";
-import type { UtcRange } from "@/imports/importPresets";
 import type { EdgeStatus } from "@/tides/useTides";
-import { addDays, toUtcDay } from "@/tides/utcDay";
+import { addDays, toUtcDay, type UtcRange } from "@/tides/utcDay";
 import { fetchSamples } from "./fetchSamples";
 import { importedSpan } from "./importedSpan";
 

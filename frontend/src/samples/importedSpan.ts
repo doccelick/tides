@@ -1,6 +1,5 @@
 import type { ImportResponse } from "@/api/generated";
-import type { UtcRange } from "@/imports/importPresets";
-import { addDays, toUtcDay } from "@/tides/utcDay";
+import { addDays, toUtcDay, type UtcRange } from "@/tides/utcDay";
 
 // Returns the longest run of imported days without gaps that includes the day,
 // or null when the day isn't imported. Imports that overlap or touch join the same run.
