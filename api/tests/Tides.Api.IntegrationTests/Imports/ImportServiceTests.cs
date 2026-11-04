@@ -190,6 +190,28 @@ public class ImportServiceTests(SqlServerFixture database)
     }
 
     [Fact]
+    public async Task ImportAsync_ConcurrentImportsOfSameRange_FetchOnce()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var location = await factory.AddLocationAsync(cancellationToken);
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 10).Select(async _ =>
+        {
+            await using var scope = factory.Services.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            return await service.ImportAsync(location, from, to, cancellationToken);
+        }));
+
+        Assert.Single(results, imports => imports.Count == 1);
+        Assert.Equal(2, handler.RequestCount);
+    }
+
+    [Fact]
     public async Task DeleteImport_WithEntries_DeletesEntries()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

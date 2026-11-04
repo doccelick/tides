@@ -24,6 +24,11 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         DateTimeOffset to,
         CancellationToken cancellationToken = default)
     {
+        // Imports run one at a time. The lock is held from the gap check through the commit,
+        // so two imports can't find the same gap.
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await AcquireImportLockAsync(cancellationToken);
+
         var gaps = await FindGapsAsync(location.Id, from, to, cancellationToken);
 
         if (gaps.Count == 0)
@@ -60,12 +65,14 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         {
             await database.SaveChangesAsync(cancellationToken);
         }
-        // A concurrent import can pass the gap check above. SQL Server error 2601 is the
-        // unique index on entries rejecting the duplicate rows.
+        // The unique index on entries is a second guard. SQL Server error 2601 means some of the
+        // entries are already stored, so nothing is imported and the transaction rolls back.
         catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 })
         {
             return [];
         }
+
+        await transaction.CommitAsync(cancellationToken);
 
         return imports;
     }
@@ -142,6 +149,18 @@ public sealed class ImportService(TidesDbContext database, KartverketClient kart
         var gaps = await FindGapsAsync(locationId, from, to, cancellationToken);
 
         return gaps.Count == 0;
+    }
+
+    // Waits up to 20 seconds for a running import to finish. The lock belongs to the current
+    // transaction, so SQL Server releases it on commit or rollback.
+    private async Task AcquireImportLockAsync(CancellationToken cancellationToken)
+    {
+        await database.Database.ExecuteSqlRawAsync("""
+            DECLARE @result int;
+            EXEC @result = sp_getapplock @Resource = N'imports', @LockMode = N'Exclusive',
+                @LockOwner = N'Transaction', @LockTimeout = 20000;
+            IF @result < 0 THROW 50000, N'Timed out waiting for another import to finish.', 1;
+            """, cancellationToken);
     }
 
     private async Task<IReadOnlyList<(DateTimeOffset From, DateTimeOffset To)>> FindGapsAsync(
