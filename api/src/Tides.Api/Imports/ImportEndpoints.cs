@@ -11,14 +11,13 @@ public static class ImportEndpoints
         routes.MapPost("/locations/{locationId:int:min(1)}/imports", CreateImportAsync)
             .WithName("CreateImport")
             .WithTags("Imports")
-            .WithSummary("Imports the parts of a range that are not imported yet.")
+            .WithSummary("Imports the parts of the previous, current and next month that are not imported yet.")
             .RequireAuthorization(AuthPolicies.Admin)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status502BadGateway)
-            .ProducesValidationProblem();
+            .ProducesProblem(StatusCodes.Status502BadGateway);
 
         routes.MapGet("/locations/{locationId:int:min(1)}/imports", GetImportsAsync)
             .WithName("GetImports")
@@ -39,7 +38,6 @@ public static class ImportEndpoints
 
     private static async Task<Results<Created<ImportsResponse>, ProblemHttpResult>> CreateImportAsync(
         int locationId,
-        CreateImportRequest request,
         ImportService importService,
         LocationService locationService,
         CancellationToken cancellationToken)
@@ -51,11 +49,11 @@ public static class ImportEndpoints
             return TypedResults.Problem(statusCode: StatusCodes.Status404NotFound, title: "Location not found.");
         }
 
-        var imports = await importService.ImportAsync(location, request.From!.Value, request.To!.Value, cancellationToken);
+        var imports = await importService.ImportWindowAsync(location, cancellationToken);
 
         if (imports.Count == 0)
         {
-            return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict, title: "Range already imported.");
+            return TypedResults.Problem(statusCode: StatusCodes.Status409Conflict, title: "Months already imported.");
         }
 
         var importsResponse = new ImportsResponse([

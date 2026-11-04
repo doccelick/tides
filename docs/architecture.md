@@ -73,14 +73,14 @@ flowchart TB
 
 | Container | Role |
 | --- | --- |
-| React app | Shows the map with Kartverket's tide stations as round markers and saved locations as square markers. Tapping a marker opens a card with the water level and the high and low tides, in the browser's time zone. A station shows its latest measured level, and a location shows a level estimated from the nearest station. The tides start with today and tomorrow, and scrolling to either end of the strip loads the 7 days before or after. A long press on the map offers to add a location there, and the form saves the location with a first import for a chosen range preset. A location's card lists its imports, imports more ranges and deletes an import or the location. Loads map tiles directly, fetches stations, locations, tides, water levels and imports from the API, and sends location and import changes to it. |
+| React app | Shows the map with Kartverket's tide stations as round markers and saved locations as square markers. Tapping a marker opens a card with the water level and the high and low tides, in the browser's time zone. A station shows its latest measured level, and a location shows a level estimated from the nearest station. The tides start with today and tomorrow, and scrolling to either end of the strip loads the 7 days before or after. A long press on the map offers to add a location there, and the form saves the location and imports its tides for the previous, current and next month. A location's card lists its imports, imports the months that are missing and deletes an import or the location. Loads map tiles directly, fetches stations, locations, tides, water levels and imports from the API, and sends location and import changes to it. |
 | Vite dev server | Serves the React app in development and proxies `/health` and `/v1` to the API, so the browser makes no cross-origin requests. |
-| API | Serves stations, locations, tides, water levels and imports as JSON, and saves and deletes locations and imports. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches the tides for a range on the first request and keeps them in memory for 24 hours, except for a location whose imports cover the range, which it reads from the database. Keeps a station's water level and a location's estimate in memory for 5 minutes. Imports a location's tides from Kartverket into the database. |
+| API | Serves stations, locations, tides, water levels and imports as JSON, and saves and deletes locations and imports. Fetches the station list from Kartverket on the first request and keeps it in memory for 24 hours. Fetches the tides for a range on the first request and keeps them in memory for 24 hours, except for a location whose imports cover the range, which it reads from the database. Keeps a station's water level and a location's estimate in memory for 5 minutes. Imports a location's tides for the previous, current and next month from Kartverket into the database, one import at a time. |
 | Database | Stores locations, imports and the imported tide data, which holds the high and low tides and the predicted level every 10 minutes. Runs as the `mssql` service in Compose and keeps its data in the `mssql-data` volume. The `migrate` service applies the EF Core migrations before the API starts. |
 
 ## Import
 
-An import stores a location's tides for a range in the database. The API imports only the parts of the range that no earlier import covers, and fetches all of them from Kartverket in one span.
+An import stores a location's tides in the database for the previous, current and next UTC month. The API imports only the parts of those months that no earlier import covers, stores each part as a separate import, and fetches all of them from Kartverket in one span. It saves the imports with EF Core and writes their entries with `SqlBulkCopy`, as [ADR 0005](adr/0005-sqlbulkcopy-for-tide-entries.md) explains.
 
 ```mermaid
 sequenceDiagram
@@ -90,25 +90,30 @@ sequenceDiagram
     participant db as Database
     participant kv as Kartverket Tide API
 
-    visitor->>spa: picks a range and imports it
+    visitor->>spa: taps Import missing months
     spa->>api: POST /v1/locations/{id}/imports
     api->>db: read the location
     alt unknown location
         api-->>spa: 404 Location not found.
     else known location
-        api->>db: read the imports that overlap the range
+        api->>db: begin a transaction and take the import lock
+        Note over api,db: waits while another import holds the lock
+        api->>db: read the imports that overlap the three months
         api->>api: find the gaps that no import covers
         alt no gaps
-            api-->>spa: 409 Range already imported.
+            api->>db: roll back, which releases the lock
+            api-->>spa: 409 Months already imported.
         else one or more gaps
             api->>kv: high and low tides from the first gap's start to the last gap's end
             api->>kv: predicted levels for the same span
-            api->>api: one import per gap, with the entries inside that gap
-            api->>db: save the imports and their entries in one transaction
-            alt another import saved the same entries first
+            api->>db: save one import per gap
+            api->>db: bulk load the entries inside each gap with SqlBulkCopy
+            alt some of the entries are already stored
                 db-->>api: the unique index on entries rejects the duplicates
-                api-->>spa: 409 Range already imported.
-            else saved
+                api->>db: roll back, which releases the lock
+                api-->>spa: 409 Months already imported.
+            else loaded
+                api->>db: commit, which releases the lock
                 api-->>spa: 201 Created with the new imports
                 spa->>api: GET /v1/locations/{id}/imports
                 spa->>api: GET /v1/locations/{id}/tides
@@ -118,7 +123,7 @@ sequenceDiagram
     end
 ```
 
-Two imports for the same location that run at the same time can both find the same gap. The database keeps entries unique on location, time and type, so the second save fails and the API answers it as if the range was already imported.
+Imports run one at a time under an application lock in SQL Server, taken with `sp_getapplock`. The transaction owns the lock from the gap check through the commit, so two imports never find the same gap. An import that starts while another import is running waits for the lock. If the other import still holds it after 20 s, the request fails with `500 Internal Server Error` and imports nothing. The database also keeps entries unique on location, time and type, as a second guard.
 
 ## Containers planned
 

@@ -1,5 +1,11 @@
 // A UTC day is a date string in the form YYYY-MM-DD, as the tide endpoint's `from` parameter takes it.
 
+// UTC days in the form YYYY-MM-DD. `from` is included and `to` is not.
+export interface UtcRange {
+  from: string;
+  to: string;
+}
+
 export function toUtcDay(date: Date): string {
   return date.toISOString().slice(0, 10);
 }

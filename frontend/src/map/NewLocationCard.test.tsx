@@ -20,7 +20,7 @@ async function submit(name: string) {
 }
 
 describe("NewLocationCard", () => {
-  it("creates the location, imports the range and reports the new location", async () => {
+  it("creates the location, imports its months and reports the new location", async () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce(Response.json(location, { status: 201 }))

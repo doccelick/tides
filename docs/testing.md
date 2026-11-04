@@ -38,7 +38,7 @@ npm run test
 
 - Parser tests read sample Kartverket responses from XML files in `Kartverket/TestData`, which the build copies to the output directory. The files cover the station list, tides, predictions and observations, and Kartverket's no-data and error responses.
 - Endpoint tests start the API in memory with `WebApplicationFactory<Program>`. `ConfigureTestServices` gives the Kartverket client a fake HTTP handler that returns the XML files, and replaces `TimeProvider` with `FakeTimeProvider`. A test therefore controls what Kartverket returns and what time it is. The tests check status codes, bodies, cache headers and how often the API calls Kartverket.
-- Logic that needs no host, such as the distance between two positions and the gaps between imports, is tested directly.
+- Logic that needs no host, such as the distance between two positions, the gaps between imports and the import window, is tested directly.
 
 ## API integration tests
 
@@ -49,6 +49,7 @@ npm run test
 - `FakeKartverketHandler` answers tide and prediction requests with the XML in `KartverketXml` and counts the requests. A test can then check whether the API read from the database or called Kartverket.
 - `TestTokens` signs short-lived access tokens with a random key, with the claims Entra puts in tokens for the API and optional roles. The factory makes the API trust that key and issuer and download nothing from Entra, while Microsoft.Identity.Web still checks the audience and the claims. `CreateSignedInClient("Admin")` returns a client that sends such a token, and `CreateSignedInClient()` one whose token has no role.
 - Endpoint tests send HTTP requests through the factory's client. Service and `TidesDbContext` tests get their objects from a scope on the factory's services and call them directly.
+- Two import tests start several imports at the same time with `Task.WhenAll`, each in its own scope, to check that imports run one at a time. Another reads `sys.foreign_keys` after an import, to check that the bulk load of entries leaves the foreign key to `Imports` trusted.
 - All tests share the one database, and nothing is cleared between tests. Each test creates the locations it needs and checks only its own rows.
 
 ## Frontend tests

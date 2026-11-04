@@ -96,12 +96,12 @@ describe("LocationImports", () => {
     );
   });
 
-  it("imports the chosen range and shows which days were added", async () => {
+  it("imports the missing months and shows which days were added", async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
     render(<LocationImports locationId={3} onChanged={onChanged} />);
 
-    await user.click(await screen.findByRole("button", { name: "Import" }));
+    await user.click(await screen.findByRole("button", { name: "Import missing months" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Imported 1 Dec – 7 Dec 2026");
     expect(await screen.findByText("1 Dec – 7 Dec 2026")).toBeInTheDocument();
@@ -123,18 +123,18 @@ describe("LocationImports", () => {
     );
     render(<LocationImports locationId={3} onChanged={vi.fn()} />);
 
-    await user.click(await screen.findByRole("button", { name: "Import" }));
+    await user.click(await screen.findByRole("button", { name: "Import missing months" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(title);
   });
 
-  describe("when the chosen range is already imported", () => {
+  describe("when every month in the window is imported", () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ["Date"] });
-      vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
-      // Covers "Next 31 days", the default preset, from 31 October.
+      vi.setSystemTime(new Date("2026-11-15T10:00:00Z"));
+      // The window in November runs from 1 October through 31 December.
       stored = [
-        { ...november, from: "2026-10-31T00:00:00+00:00", to: "2026-12-01T00:00:00+00:00" },
+        { ...november, from: "2026-10-01T00:00:00+00:00", to: "2027-01-01T00:00:00+00:00" },
       ];
     });
 
@@ -143,7 +143,7 @@ describe("LocationImports", () => {
     it("disables the import", async () => {
       render(<LocationImports locationId={3} onChanged={vi.fn()} />);
 
-      expect(await screen.findByRole("button", { name: "Already imported" })).toBeDisabled();
+      expect(await screen.findByRole("button", { name: "All months imported" })).toBeDisabled();
     });
   });
 

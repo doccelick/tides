@@ -3,9 +3,7 @@ import { XIcon } from "lucide-react";
 import type { LocationResponse } from "@/api/generated";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { importPresets, resolvePreset } from "@/imports/importPresets";
 import { createImport } from "@/imports/importRequests";
-import { RangeSelect } from "@/imports/RangeSelect";
 import { createLocation } from "./locationRequests";
 import type { PressPosition } from "./useLongPress";
 
@@ -20,7 +18,6 @@ interface NewLocationCardProps {
 
 // Matches the API's limit on location names.
 const nameMaxLength = 100;
-const defaultPresetLabel = "Next 31 days";
 
 export function NewLocationCard({
   position,
@@ -28,21 +25,15 @@ export function NewLocationCard({
   onCreated,
   onClose,
 }: NewLocationCardProps) {
-  const [now] = useState(() => new Date());
   const [name, setName] = useState("");
-  const [presetLabel, setPresetLabel] = useState(defaultPresetLabel);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameErrors, setNameErrors] = useState<string[]>([]);
   // Set when the location was saved and its import failed, so a retry only imports.
   const [savedLocation, setSavedLocation] = useState<LocationResponse | null>(null);
 
-  async function importRange(location: LocationResponse) {
-    const preset = importPresets.find((p) => p.label === presetLabel);
-    const range = preset === undefined ? null : resolvePreset(preset, now);
-    if (range === null) return;
-
-    const result = await createImport(location.id, range);
+  async function importMonths(location: LocationResponse) {
+    const result = await createImport(location.id);
     if (!result.ok) {
       setSavedLocation(location);
       setError(`Location saved, but the import failed: ${result.error.message}`);
@@ -60,7 +51,7 @@ export function NewLocationCard({
 
     try {
       if (savedLocation !== null) {
-        await importRange(savedLocation);
+        await importMonths(savedLocation);
         return;
       }
 
@@ -78,7 +69,7 @@ export function NewLocationCard({
       }
 
       onLocationSaved(result.data);
-      await importRange(result.data);
+      await importMonths(result.data);
     } finally {
       setSaving(false);
     }
@@ -119,7 +110,6 @@ export function NewLocationCard({
             {nameError}
           </p>
         ))}
-        <RangeSelect now={now} value={presetLabel} onValueChange={setPresetLabel} />
         {error !== null && (
           <p role="alert" className="text-sm">
             {error}

@@ -555,7 +555,7 @@
         "tags": [
           "Imports"
         ],
-        "summary": "Imports the parts of a range that are not imported yet.",
+        "summary": "Imports the parts of the previous, current and next month that are not imported yet.",
         "operationId": "CreateImport",
         "parameters": [
           {
@@ -569,16 +569,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateImportRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "201": {
             "description": "Created",
@@ -636,16 +626,6 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -746,29 +726,6 @@
   },
   "components": {
     "schemas": {
-      "CreateImportRequest": {
-        "required": [
-          "from",
-          "to"
-        ],
-        "type": "object",
-        "properties": {
-          "from": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "to": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          }
-        }
-      },
       "CreateLocationRequest": {
         "required": [
           "name",

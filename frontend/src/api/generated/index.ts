@@ -5,7 +5,6 @@ export type {
   CreateImportData,
   CreateImportError,
   CreateImportErrors,
-  CreateImportRequest,
   CreateImportResponse,
   CreateImportResponses,
   CreateLocationData,

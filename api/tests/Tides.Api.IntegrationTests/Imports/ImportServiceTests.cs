@@ -190,6 +190,77 @@ public class ImportServiceTests(SqlServerFixture database)
     }
 
     [Fact]
+    public async Task ImportAsync_ConcurrentImportsOfSameRange_FetchOnce()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var location = await factory.AddLocationAsync(cancellationToken);
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 10).Select(async _ =>
+        {
+            await using var scope = factory.Services.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            return await service.ImportAsync(location, from, to, cancellationToken);
+        }));
+
+        Assert.Single(results, imports => imports.Count == 1);
+        Assert.Equal(2, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task ImportAsync_ConcurrentImportsForDifferentLocations_AllSucceed()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+
+        var locations = new List<Location>();
+        for (var i = 0; i < 10; i++)
+        {
+            locations.Add(await factory.AddLocationAsync(cancellationToken));
+        }
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+        var to = from.AddMinutes(20);
+
+        // Without the import lock, concurrent bulk loads deadlock on the foreign key check.
+        var results = await Task.WhenAll(locations.Select(async location =>
+        {
+            await using var scope = factory.Services.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<ImportService>();
+            return await service.ImportAsync(location, from, to, cancellationToken);
+        }));
+
+        Assert.All(results, imports => Assert.Single(imports));
+    }
+
+    [Fact]
+    public async Task ImportAsync_NewRange_KeepsForeignKeyTrusted()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var handler = new FakeKartverketHandler(KartverketXml.Tides, KartverketXml.Predictions);
+        await using var factory = new TidesApiFactory(database, handler);
+        var location = await factory.AddLocationAsync(cancellationToken);
+
+        var from = new DateTimeOffset(2026, 11, 01, 00, 00, 0, TimeSpan.Zero);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<ImportService>().ImportAsync(location, from, from.AddMinutes(20), cancellationToken);
+
+        // A bulk load that skips constraint checks marks the foreign key as not trusted.
+        var context = scope.ServiceProvider.GetRequiredService<TidesDbContext>();
+        var notTrusted = await context.Database
+            .SqlQuery<bool>($"SELECT is_not_trusted AS Value FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('TideEntries')")
+            .ToListAsync(cancellationToken);
+
+        Assert.Equal([false], notTrusted);
+    }
+
+    [Fact]
     public async Task DeleteImport_WithEntries_DeletesEntries()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

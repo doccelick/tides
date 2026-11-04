@@ -4,11 +4,6 @@ export type ClientOptions = {
   baseUrl: `${string}://${string}` | (string & {});
 };
 
-export type CreateImportRequest = {
-  from: null | string;
-  to: null | string;
-};
-
 export type CreateLocationRequest = {
   name: string;
   latitude: null | number;
@@ -444,7 +439,7 @@ export type GetImportsResponses = {
 export type GetImportsResponse = GetImportsResponses[keyof GetImportsResponses];
 
 export type CreateImportData = {
-  body: CreateImportRequest;
+  body?: never;
   path: {
     locationId: number;
   };
@@ -453,10 +448,6 @@ export type CreateImportData = {
 };
 
 export type CreateImportErrors = {
-  /**
-   * Bad Request
-   */
-  400: HttpValidationProblemDetails;
   /**
    * Unauthorized
    */
